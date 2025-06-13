@@ -16,16 +16,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v3
-        with:
-          path: "src"
+
 
       - name: Checkout builds branch
         uses: actions/checkout@v3
         with:
-          ref: "builds"
-          path: "builds"
+          ref: "main"
+          path: "main"
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Clean old builds
