@@ -1,0 +1,8 @@
+{
+    "name": "mixue",
+    "description": "CloudStream Plugins",
+    "manifestVersion": 1,
+    "pluginLists": [
+      "https://raw.githubusercontent.com/cugucugu/mixue/builds/plugins.json"
+    ]
+}
