@@ -1,5 +1,64 @@
 [
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 20276,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "BelgeselX"
+        ],
+        "tvTypes": [
+            "Documentary"
+        ],
+        "version": 6,
+        "internalName": "BelgeselX",
+        "description": "En yeni belgeseller, t\u00fcrk\u00e7e altyaz\u0131l\u0131 yada dublaj olarak 1080p kalitesinde HD belgesel izle.",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/BelgeselX.cs3",
+        "name": "BelgeselX"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 25195,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "HdFilmCehennemi"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 21,
+        "internalName": "HDFilmCehennemi",
+        "description": "T\u00fcrkiye'nin en h\u0131zl\u0131 hd film izleme sitesi",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/HDFilmCehennemi.cs3",
+        "name": "HDFilmCehennemi"
+    },
+    {
+        "iconUrl": "https://netfree2.cc/mobile/img/nf2/icon_x192.png",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 36949,
+        "status": 1,
+        "language": "hi",
+        "authors": [
+            "NetflixMirror"
+        ],
+        "tvTypes": [
+            "Movie",
+            "TvSeries"
+        ],
+        "version": 10,
+        "internalName": "NetflixMirror",
+        "description": "Netflix, PrimeVideo Content in Multiple Languages",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/NetflixMirror.cs3",
+        "name": "NetflixMirror"
+    },
+    {
         "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
@@ -7,11 +66,7 @@
         "status": 1,
         "language": "tr",
         "authors": [
-            "keyiflerolsun",
-            "yusiqo",
-            "inatchii",
-            "JustRelaxable",
-            "nikyokki"
+            "RecTV"
         ],
         "tvTypes": [
             "Movie",
