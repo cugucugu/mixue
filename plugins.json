@@ -1,13 +1,72 @@
 [
+      {
+    "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/cugucugu/mixue",
+    "fileSize": 19401,
+    "status": 1,
+    "language": "tr",
+    "authors": [
+      "BelgeselX",
+    ],
+    "tvTypes": [
+      "Documentary"
+    ],
+    "version": 10,
+    "internalName": "BelgeselX",
+    "description": "En yeni belgeseller, türkçe altyazılı yada dublaj olarak 1080p kalitesinde HD belgesel izle.",
+    "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/BelgeselX.cs3",
+    "name": "BelgeselX"
+  },
     {
-        "iconUrl": "https://rectvapp.com.tr/wp-content/uploads/2024/08/cropped-cropped-Screenshot_2023-08-31_at_11.02.55_PM-removebg-preview-32x32.webp",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/cugucugu/mixue",
-        "fileSize": 20625,
-        "status": 1,
-        "language": "tr",
-        "authors": [ 
-            "RecTV"
+    "iconUrl": "https://www.google.com/s2/favicons?domain=hdfilmcehennemi.com&sz=%size%",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/cugucugu/mixue/",
+    "fileSize": 20237,
+    "status": 1,
+    "language": "tr",
+    "authors": [
+      "HdFilmCehennemi",
+    ],
+    "tvTypes": [
+      "Movie",
+      "TvSeries"
+    ],
+    "version": 13,
+    "internalName": "HDFilmCehennemi",
+    "description": "Türkiye'nin en hızlı hd film izleme sitesi",
+    "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/HDFilmCehennemi.cs3",
+    "name": "HDFilmCehennemi"
+  },
+      {
+    "iconUrl": "https://iosmirror.cc/img/nf2/icon_x192.png",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/cugucugu/mixue/",
+    "fileSize": 38595,
+    "status": 1,
+    "language": "hi",
+    "authors": [
+      "NetflixMirror"
+    ],
+    "tvTypes": [
+      "Movie",
+      "TvSeries"
+    ],
+    "version": 19,
+    "internalName": "NetflixMirror",
+    "description": "Netflix, PrimeVideo Content in Multiple Languages",
+    "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds//NetflixMirror.cs3",
+    "name": "NetflixMirror"
+  },
+      {
+      "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
+      "apiVersion": 1,
+      "repositoryUrl": "https://github.com/cugucugu/mixue",
+      "fileSize": 20625,
+      "status": 1,
+      "language": "tr",
+      "authors": [
+        "RecTV"
         ],
         "tvTypes": [
             "Movie",
@@ -16,7 +75,7 @@
         ],
         "version": 75,
         "internalName": "RecTV",
-        "description": "RecTv APK, Türkiye’deki en popüler Çevrimiçi Medya Akış platformlarından biridir. Filmlerin, Canlı Sporların, Web Dizilerinin ve çok daha fazlasının keyfini ücretsiz çıkarın.",
+        "description": "RecTv APK, T\u00fcrkiye\u2019deki en pop\u00fcler \u00c7evrimi\u00e7i Medya Ak\u0131\u015f platformlar\u0131ndan biridir. Filmlerin, Canl\u0131 Sporlar\u0131n, Web Dizilerinin ve \u00e7ok daha fazlas\u0131n\u0131n keyfini \u00fccretsiz \u00e7\u0131kar\u0131n.",
         "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/RecTV.cs3",
         "name": "RecTV"
     }
