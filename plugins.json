@@ -39,12 +39,11 @@
         "name": "HDFilmCehennemi"
     },
     {
-        "iconUrl": "https://netfree2.cc/mobile/img/nf2/icon_x192.png",
+        "iconUrl": "https://github.com/SaurabhKaperwan/CSX/raw/refs/heads/master/NetflixMirrorProvider/icon.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
-        "fileSize": 36949,
+        "fileSize": 38008,
         "status": 1,
-        "language": "hi",
         "authors": [
             "NetflixMirror"
         ],
@@ -52,7 +51,7 @@
             "Movie",
             "TvSeries"
         ],
-        "version": 10,
+        "version": 21,
         "internalName": "NetflixMirror",
         "description": "Netflix, PrimeVideo Content in Multiple Languages",
         "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/NetflixMirror.cs3",
