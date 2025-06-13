@@ -1,66 +1,61 @@
-name: Build
+name: CloudStream Derleyici
 
 concurrency:
-   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-   cancel-in-progress: true
- 
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
-   workflow_dispatch:
-   push:
-     branches:
-       - master
-     paths-ignore:
-       - "**/*.md"
-       - "**/*.yml"
-       - "**/*.jpg"
-       - "**/*.png"
-       - "**/*.py"
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.jpg"
+      - "**/*.png"
+      - "**/*.py"
 
 jobs:
-  build:
+  CloudStreamDerleyici:
     runs-on: ubuntu-latest
     steps:
-
       - name: "'src' Depo Kontrolü"
         uses: actions/checkout@v4.2.2
         with:
-           path: "src"
- 
+          path: "src"
+
       - name: "'build' Depo Kontrolü"
         uses: actions/checkout@v4.2.2
         with:
-           ref: "builds"
-           path: "builds"
-           
+          ref: "builds"
+          path: "builds"
 
-      - name: Clean old builds
-        run: |
-          rm $GITHUB_WORKSPACE/builds/*.cs3 || true
-          rm $GITHUB_WORKSPACE/builds/*.jar || true
+      - name: Eski Derlemeleri Temizle
+        run: find $GITHUB_WORKSPACE/builds -name '*.cs3' -delete
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v1
+      - name: JDK 17 Ayarla
+        uses: actions/setup-java@v4.6.0
         with:
+          distribution: adopt
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
+      - name: Android SDK Ayarla
+        uses: android-actions/setup-android@v3.2.2
 
-      - name: Build Plugins
+      - name: Eklentileri Derle
         run: |
           cd $GITHUB_WORKSPACE/src
           chmod +x gradlew
           ./gradlew make makePluginsJson
-          ./gradlew ensureJarCompatibility
-          cp **/build/*.cs3 $GITHUB_WORKSPACE/builds || true
-          cp **/build/*.jar $GITHUB_WORKSPACE/builds || true
-          cp build/plugins.json $GITHUB_WORKSPACE/builds || true
+          cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
+          cp build/plugins.json $GITHUB_WORKSPACE/builds
 
-      - name: Push builds
+      - name: Derlemeleri Yükle
         run: |
           cd $GITHUB_WORKSPACE/builds
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
           git add .
-          git commit --amend -m "Build $GITHUB_SHA" || echo "Nothing to commit"
+          git commit -m "Yeni Derleme: $GITHUB_SHA" || exit 0
           git push --force
