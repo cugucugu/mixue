@@ -1,29 +1,37 @@
 name: Build
 
-concurrency: 
-  group: "build"
-  cancel-in-progress: true
-
+concurrency:
+   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+   cancel-in-progress: true
+ 
 on:
-  push:
-    branches:
-      - master
-      - main
-    paths-ignore:
-      - '*.md'
+   workflow_dispatch:
+   push:
+     branches:
+       - master
+     paths-ignore:
+       - "**/*.md"
+       - "**/*.yml"
+       - "**/*.jpg"
+       - "**/*.png"
+       - "**/*.py"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
 
-
-      - name: Checkout builds branch
-        uses: actions/checkout@v3
+      - name: "'src' Depo Kontrolü"
+        uses: actions/checkout@v4.2.2
         with:
-          ref: "main"
-          path: "main"
-          token: ${{ secrets.GITHUB_TOKEN }}
+           path: "src"
+ 
+      - name: "'build' Depo Kontrolü"
+        uses: actions/checkout@v4.2.2
+        with:
+           ref: "builds"
+           path: "builds"
+           
 
       - name: Clean old builds
         run: |
@@ -40,7 +48,7 @@ jobs:
 
       - name: Build Plugins
         run: |
-          cd $GITHUB_WORKSPACE/RecTV/src
+          cd $GITHUB_WORKSPACE/src
           chmod +x gradlew
           ./gradlew make makePluginsJson
           ./gradlew ensureJarCompatibility
