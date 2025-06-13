@@ -3,6 +3,6 @@
     "description": "CloudStream Plugins",
     "manifestVersion": 1,
     "pluginLists": [
-      "https://raw.githubusercontent.com/cugucugu/mixue/master/plugins.json"
+      "https://raw.githubusercontent.com/cugucugu/mixue/buildings/plugins.json"
     ]
 }
