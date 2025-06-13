@@ -1,5 +1,6 @@
 # mixue
 CloudStream mix plugins
+<<<<<<< HEAD
 # `shortcut: mixue`
 
 **⚠️ This is currently under development, dont use it yet if you're not comfortable with constantly merging new changes**
@@ -60,3 +61,5 @@ Everything in this repo is released into the public domain. You may use it howev
 
 This template as well as the gradle plugin and the whole plugin system is **heavily** based on [Aliucord](https://github.com/Aliucord).
 *Go use it, it's a great mobile discord client mod!*
+=======
+>>>>>>> a6ab8ef (Initial commit)
