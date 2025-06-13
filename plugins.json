@@ -1,17 +1,32 @@
 [
-    {
-        "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
-        "apiVersion": 1,
-        "repositoryUrl": "https://github.com/cugucugu/mixue",
-        "fileSize": 20625,
-        "status": 1,
-        "language": "tr",
-        "authors": [
-            "keyiflerolsun",
-            "yusiqo",
-            "inatchii",
-            "JustRelaxable",
-            "nikyokki"
+      {
+    "iconUrl": "https://www.google.com/s2/favicons?domain=belgeselx.com&sz=%size%",
+    "apiVersion": 1,
+    "repositoryUrl": "https://github.com/cugucugu/mixue",
+    "fileSize": 19401,
+    "status": 1,
+    "language": "tr",
+    "authors": [
+      "BelgeselX",
+    ],
+    "tvTypes": [
+      "Documentary"
+    ],
+    "version": 10,
+    "internalName": "BelgeselX",
+    "description": "En yeni belgeseller, türkçe altyazılı yada dublaj olarak 1080p kalitesinde HD belgesel izle.",
+    "url": "https://raw.githubusercontent.com/maarrem/cs-Kekik/builds/BelgeselX.cs3",
+    "name": "BelgeselX"
+  },
+      {
+      "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
+      "apiVersion": 1,
+      "repositoryUrl": "https://github.com/cugucugu/mixue",
+      "fileSize": 20625,
+      "status": 1,
+      "language": "tr",
+      "authors": [
+        "RecTV"
         ],
         "tvTypes": [
             "Movie",
