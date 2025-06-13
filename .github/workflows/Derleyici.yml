@@ -1,0 +1,98 @@
+name: CloudStream Derleyici
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "**/*.md"
+      - "**/*.yml"
+      - "**/*.jpg"
+      - "**/*.png"
+      - "**/*.py"
+
+jobs:
+  CloudStreamDerleyici:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "'src' Depo Kontrolü"
+        uses: actions/checkout@v4.2.2
+        with:
+          path: "src"
+
+      - name: "'build' Depo Kontrolü"
+        uses: actions/checkout@v4.2.2
+        with:
+          ref: "builds"
+          path: "builds"
+
+      - name: Eski Derlemeleri Temizle (Özel Dosyaları Koru)
+        run: |
+          find $GITHUB_WORKSPACE/builds -name '*.cs3' ! -name 'YerelDiziler.cs3' ! -name 'SineWix.cs3' -delete
+
+      - name: JDK 17 Ayarla
+        uses: actions/setup-java@v4.6.0
+        with:
+          distribution: adopt
+          java-version: 17
+
+      - name: Android SDK Ayarla
+        uses: android-actions/setup-android@v3.2.2
+
+      - name: Eklentileri Derle
+        run: |
+          cd $GITHUB_WORKSPACE/src
+          chmod +x gradlew
+          ./gradlew make makePluginsJson
+          cp **/build/*.cs3 $GITHUB_WORKSPACE/builds
+          cp build/plugins.json $GITHUB_WORKSPACE/builds
+
+      - name: Ek Eklentileri plugin.json'a Ekle
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+
+          jq '. += [
+            {
+              "iconUrl": "https://play-lh.googleusercontent.com/brwGNmr7IjA_MKk_TTPs0va10hdKE_bD_a1lnKoiMuCayW98EHpRv55edA6aEoJlmwfX",
+              "apiVersion": 1,
+              "repositoryUrl": "https://github.com/cugucugu/mixue",
+              "status": 3,
+              "language": "tr",
+              "authors": ["Makoto Tokioki"],
+              "tvTypes": ["Movie", "TvSeries", "Anime"],
+              "version": 16,
+              "internalName": "SineWix",
+              "description": "Sinewix | Ücretsiz Film - Dizi - Anime İzleme Uygulaması.",
+              "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/SineWix.cs3",
+              "name": "SineWix"
+            },
+            {
+              "iconUrl": "https://png.pngtree.com/png-clipart/20220823/ourmid/pngtree-turkey-country-flag-pin-icon-png-image_6120061.png",
+              "apiVersion": 1,
+              "repositoryUrl": "https://github.com/cugucugu/mixue",
+              "fileSize": 13525,
+              "status": 1,
+              "language": "tr",
+              "authors": ["Makoto Tokioki"],
+              "tvTypes": ["Tv Series"],
+              "version": 14,
+              "internalName": "YerelDiziler",
+              "description": "Bu eklentide yerel dizileri güncel şekilde bulabilirsiniz",
+              "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/YerelDiziler.cs3",
+              "name": "YerelDiziler"
+            }
+          ]' plugins.json > plugins_temp.json && mv plugins_temp.json plugins.json
+
+      - name: Derlemeleri Yükle
+        run: |
+          cd $GITHUB_WORKSPACE/builds
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git add .
+          git commit -m "Yeni Derleme: $GITHUB_SHA" || exit 0
+          git push --force
