@@ -1,10 +1,8 @@
-package com.cugucugu.yenikaynak
+package com.yenikaynak
 
-import android.util.Log
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.extractors.*
 import com.lagradost.cloudstream3.utils.*
-import kotlin.random.Random
 
 class DoodStreamExtractor : ExtractorApi() {
     override val name = "DoodStream"
@@ -16,7 +14,14 @@ class DoodStreamExtractor : ExtractorApi() {
         val match = Regex(""""file":"(https:[^"]+\.mp4)"""").find(res.text) ?: return null
         val videoUrl = match.groupValues[1].replace("\\", "")
         return listOf(
-            ExtractorLink(name, name, videoUrl, referer = url, quality = Qualities.Unknown.value, isM3u8 = false)
+            newExtractorLink(
+                name = name,
+                source = name,
+                url = videoUrl,
+                referer = url,
+                quality = Qualities.Unknown.value,
+                isM3u8 = false
+            )
         )
     }
 }
