@@ -78,22 +78,30 @@ class JetFilmizle : MainAPI() {
             addActors(actors)
         }
     }
+override suspend fun load(url: String): LoadResponse? {
+        val document = app.get(url).document
 
-    // Video kaynaklarını (partları) bulan fonksiyon, sitenin yeni sekme yapısına göre güncellendi.
-    override suspend fun loadLinks(
-        data: String,
-        isCasting: Boolean,
-        subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val document = app.get(data).document
-        // Film partları artık "data-iframe" içeren sekmelerden alınıyor.
-        document.select("ul.source-list li").forEach {
-            val iframeUrl = it.attr("abs:data-iframe")
-            if (iframeUrl.isNotBlank()) {
-                loadExtractor(iframeUrl, data, subtitleCallback, callback)
-            }
+        val title = document.selectFirst("h1.title")?.text()?.substringBefore(" izle")?.trim() ?: return null
+        val poster = fixUrlNull(document.selectFirst("div.poster img")?.attr("src"))
+        val year = document.select("div.jfs-details div.fd-item:contains(Yıl) span").text().toIntOrNull()
+        val description = document.selectFirst("div.synopsis p")?.text()?.trim()
+        val tags = document.select("div.jfs-details div.fd-item:contains(Kategori) a").map { it.text() }
+        val rating = document.selectFirst("div.jfs-details span.imdb")?.text()?.trim()?.toRatingInt()
+        val actors = document.select("div.cast-list div.cast-item").mapNotNull {
+            val name = it.selectFirst("div.ci-name")?.text() ?: return@mapNotNull null
+            val image = fixUrlNull(it.selectFirst("img")?.attr("data-original"))
+            Actor(name, image)
         }
-        return true
+        val recommendations = document.select("div.movies-list div.ml-item").mapNotNull { it.toSearchResult() }
+
+        return newMovieLoadResponse(title, url, TvType.Movie, url) {
+            this.posterUrl = poster
+            this.year = year
+            this.plot = description
+            this.tags = tags
+            this.rating = rating
+            this.recommendations = recommendations
+            // DÜZELTME: 'addActors(actors)' yerine doğrudan atama yapıldı.
+            this.actors = actors
+        }
     }
-}
