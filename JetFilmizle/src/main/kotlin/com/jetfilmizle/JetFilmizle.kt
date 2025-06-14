@@ -14,20 +14,12 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
 // JSON verilerini ayrıştırmak için gerekli veri sınıfları
+// DÜZELTME: VidBiz ve VidBizSource sınıfları kaldırıldı. Kod artık bu sınıfları
+// harici JetFilmizleModels.kt dosyasından alacak.
 private data class D2rsSource(
     val file: String,
     val type: String? = null,
     val label: String? = null
-)
-
-private data class VidBizSource(
-    val file: String,
-    val label: String
-)
-
-private data class VidBiz(
-    val status: String,
-    val sources: List<VidBizSource>
 )
 
 class JetFilmizle : MainAPI() {
@@ -118,17 +110,15 @@ class JetFilmizle : MainAPI() {
                 val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframeUrl).text
                 val sources: List<D2rsSource> = mapper.readValue(d2List)
                 sources.forEach {
-                    // DÜZELTME: newExtractorLink fonksiyonu güncel API yapısına göre düzenlendi.
                     callback.invoke(
-                        newExtractorLink(
+                        ExtractorLink(
                             source = this.name,
                             name = "D2rs - ${it.label}",
-                            url = "https://d2rs.com/zeus/${it.file}"
-                        ) {
-                            this.referer = mainUrl
-                            this.quality = getQualityFromName(it.label)
-                            this.isM3u8 = it.type != "video/mp4"
-                        }
+                            url = "https://d2rs.com/zeus/${it.file}",
+                            referer = mainUrl,
+                            quality = getQualityFromName(it.label),
+                            isM3u8 = it.type != "video/mp4"
+                        )
                     )
                 }
             } else if (iframeUrl.contains("videolar.biz")) {
@@ -139,20 +129,20 @@ class JetFilmizle : MainAPI() {
                 val apiUrl = "https://s2.videolar.biz/api/"
                 val requestBody = kaken.toRequestBody("text/plain".toMediaType())
                 val vidBizText = app.post(apiUrl, requestBody = requestBody, referer = iframeUrl).text
+                // Bu satır artık harici JetFilmizleModels.kt dosyasındaki VidBiz sınıfını kullanacak.
                 val vidBizData: VidBiz = mapper.readValue(vidBizText)
                 if (vidBizData.status == "ok") {
+                    // Bu döngü de harici 'Source' sınıfı ile çalışacak.
                     vidBizData.sources.forEach {
-                        // DÜZELTME: newExtractorLink fonksiyonu güncel API yapısına göre düzenlendi.
                         callback.invoke(
-                            newExtractorLink(
+                            ExtractorLink(
                                 source = this.name,
                                 name = "VidBiz - ${it.label}",
-                                url = it.file
-                            ) {
-                                this.referer = mainUrl
-                                this.quality = getQualityFromName(it.label)
-                                this.isM3u8 = true
-                            }
+                                url = it.file,
+                                referer = mainUrl,
+                                quality = getQualityFromName(it.label),
+                                isM3u8 = true
+                            )
                         )
                     }
                 }
