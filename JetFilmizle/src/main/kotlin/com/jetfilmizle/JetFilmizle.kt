@@ -6,7 +6,7 @@ import org.jsoup.nodes.Element
 
 class JetFilmizle : MainAPI() {
     // Sitenin güncel adresi
-    override var mainUrl = "https://jetfilmizle.vip"
+    override var mainUrl = "https://jetfilmizle.watch"
     override var name = "JetFilmizle"
     override val hasMainPage = true
     override var lang = "tr"
