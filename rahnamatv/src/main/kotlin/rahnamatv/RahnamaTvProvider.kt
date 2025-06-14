@@ -4,6 +4,11 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.network.CloudflareKiller
+import com.lagradost.cloudstream3.LoadResponse.Companion.newMovieLoadResponse
+import com.lagradost.cloudstream3.LoadResponse.Companion.newTvSeriesLoadResponse
+import com.lagradost.cloudstream3.MainAPI
+import com.lagradost.cloudstream3.SearchResponse
+import com.lagradost.cloudstream3.TvType
 
 // Ana eklenti sınıfı.
 // Siteden veri çekme, arama yapma ve video linklerini bulma mantığını içerir.
@@ -23,7 +28,9 @@ class RahnamaTvProvider : MainAPI() {
     // Cloudflare korumasını atlamak için interceptor.
     private val interceptor = CloudflareKiller()
 
-    override fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+    // HATA DÜZELTMESİ: Fonksiyon 'suspend' olarak işaretlendi ve dönüş tipi nullable yapıldı.
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
+        // Ağ isteği bir suspend fonksiyon olduğu için, bu fonksiyon da suspend olmalı.
         val document = app.get(mainUrl, interceptor = interceptor).document
         val homePageList = ArrayList<HomePageList>()
 
@@ -37,6 +44,8 @@ class RahnamaTvProvider : MainAPI() {
             }
         }
         
+        // Eğer hiçbir şey bulunamazsa null dönmek yerine boş bir response dönmek daha güvenli.
+        if (homePageList.isEmpty()) return null
         return HomePageResponse(homePageList)
     }
 
@@ -74,12 +83,15 @@ class RahnamaTvProvider : MainAPI() {
         val plot = document.selectFirst("div.story")?.text()?.trim()
         val year = document.select("div.info span a[href*='/year/']")?.text()?.toIntOrNull()
         val tags = document.select("div.info span a[href*='/genre/']").map { it.text() }
-
         // İçeriğin dizi mi yoksa film mi olduğunu URL'den anlıyoruz.
-        return if (url.contains("/series/")) {
+        val tvType = if (url.contains("/series/")) TvType.TvSeries else TvType.Movie
+
+        return if (tvType == TvType.TvSeries) {
             val episodes = ArrayList<Episode>()
             document.select("div.seasons_list > ul").forEachIndexed { seasonIndex, seasonElement ->
-                val seasonNum = seasonIndex + 1
+                // Site 1'den başladığı için sezon numarasını düzeltiyoruz
+                val seasonNum = seasonElement.parent()?.selectFirst("span")?.text()?.filter { it.isDigit() }?.toIntOrNull() ?: (seasonIndex + 1)
+                
                 seasonElement.select("li").forEach { episodeElement ->
                     val epLink = episodeElement.selectFirst("a") ?: return@forEach
                     val epHref = fixUrl(epLink.attr("href"))
