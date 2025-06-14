@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 
 class JetFilmizle : MainAPI() {
-    // Sitenin güncel adresine güncellendi.
+    // Sitenin güncel adresi
     override var mainUrl = "https://jetfilmizle.vip"
     override var name = "JetFilmizle"
     override val hasMainPage = true
@@ -22,18 +22,17 @@ class JetFilmizle : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get(request.data + page).document
-        // Sitenin yeni yapısına uygun seçiciye güncellendi.
+        // Sitenin yeni HTML yapısına uygun olarak güncellendi
         val home = document.select("div.ml-item").mapNotNull { it.toSearchResult() }
 
         return newHomePageResponse(request.name, home)
     }
 
-    // Film kartlarını okuyan fonksiyon, sitenin yeni HTML yapısına göre düzenlendi.
     private fun Element.toSearchResult(): SearchResponse? {
         val titleElement = this.selectFirst("h2.mli-title a") ?: return null
         val title = titleElement.text().substringBefore(" izle").trim()
         val href = fixUrl(titleElement.attr("href"))
-        // Resimlerin "data-original" özelliğinden alınması sağlandı.
+        // Resimler "data-original" özelliğinden okunuyor
         val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("data-original"))
 
         return newMovieSearchResponse(title, href, TvType.Movie) {
@@ -41,31 +40,31 @@ class JetFilmizle : MainAPI() {
         }
     }
 
-    // Arama fonksiyonu, sitenin yeni GET tabanlı arama sistemine göre güncellendi.
     override suspend fun search(query: String): List<SearchResponse> {
+        // Arama fonksiyonu GET metodu kullanacak şekilde güncellendi
         val document = app.get("$mainUrl/?s=$query").document
-
-        return document.select("div.ml-item").mapNotNull {
-            it.toSearchResult()
-        }
+        return document.select("div.ml-item").mapNotNull { it.toSearchResult() }
     }
 
-    // Film detaylarını çeken fonksiyon, yeni HTML seçicilerine göre tamamen yeniden yazıldı.
-    override suspend fun load(url: String): LoadResponse? {
+    override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        val title = document.selectFirst("h1.title")?.text()?.substringBefore(" izle")?.trim() ?: return null
+        val title = document.selectFirst("h1.title")?.text()?.substringBefore(" izle")?.trim()!!
         val poster = fixUrlNull(document.selectFirst("div.poster img")?.attr("src"))
-        // Yıl bilgisi daha güvenilir bir yerden çekildi.
         val year = document.select("div.jfs-details div.fd-item:contains(Yıl) span").text().toIntOrNull()
         val description = document.selectFirst("div.synopsis p")?.text()?.trim()
         val tags = document.select("div.jfs-details div.fd-item:contains(Kategori) a").map { it.text() }
         val rating = document.selectFirst("div.jfs-details span.imdb")?.text()?.trim()?.toRatingInt()
+        
+        // HATA DÜZELTMESİ: 'Actor' yerine 'ActorData' listesi oluşturuluyor.
+        // API artık 'ActorData' tipinde bir liste bekliyor.
         val actors = document.select("div.cast-list div.cast-item").mapNotNull {
             val name = it.selectFirst("div.ci-name")?.text() ?: return@mapNotNull null
             val image = fixUrlNull(it.selectFirst("img")?.attr("data-original"))
-            Actor(name, image)
+            // 'Actor' nesnesi 'ActorData' içine sarmalanıyor.
+            ActorData(Actor(name, image))
         }
+
         val recommendations = document.select("div.movies-list div.ml-item").mapNotNull { it.toSearchResult() }
 
         return newMovieLoadResponse(title, url, TvType.Movie, url) {
@@ -75,33 +74,26 @@ class JetFilmizle : MainAPI() {
             this.tags = tags
             this.rating = rating
             this.recommendations = recommendations
-            addActors(actors)
-        }
-    }
-override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url).document
-
-        val title = document.selectFirst("h1.title")?.text()?.substringBefore(" izle")?.trim() ?: return null
-        val poster = fixUrlNull(document.selectFirst("div.poster img")?.attr("src"))
-        val year = document.select("div.jfs-details div.fd-item:contains(Yıl) span").text().toIntOrNull()
-        val description = document.selectFirst("div.synopsis p")?.text()?.trim()
-        val tags = document.select("div.jfs-details div.fd-item:contains(Kategori) a").map { it.text() }
-        val rating = document.selectFirst("div.jfs-details span.imdb")?.text()?.trim()?.toRatingInt()
-        val actors = document.select("div.cast-list div.cast-item").mapNotNull {
-            val name = it.selectFirst("div.ci-name")?.text() ?: return@mapNotNull null
-            val image = fixUrlNull(it.selectFirst("img")?.attr("data-original"))
-            Actor(name, image)
-        }
-        val recommendations = document.select("div.movies-list div.ml-item").mapNotNull { it.toSearchResult() }
-
-        return newMovieLoadResponse(title, url, TvType.Movie, url) {
-            this.posterUrl = poster
-            this.year = year
-            this.plot = description
-            this.tags = tags
-            this.rating = rating
-            this.recommendations = recommendations
-            // DÜZELTME: 'addActors(actors)' yerine doğrudan atama yapıldı.
+            // HATA DÜZELTMESİ: 'addActors' yerine 'actors' özelliğine doğrudan atama yapılıyor.
             this.actors = actors
         }
     }
+
+    override suspend fun loadLinks(
+        data: String,
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val document = app.get(data).document
+        // Video kaynakları (partlar) "data-iframe" içeren sekmelerden okunuyor.
+        document.select("ul.source-list li").forEach {
+            val iframeUrl = it.attr("abs:data-iframe")
+            if (iframeUrl.isNotBlank()) {
+                // 'referer' olarak mevcut film sayfasının URL'si ekleniyor.
+                loadExtractor(iframeUrl, data, subtitleCallback, callback)
+            }
+        }
+        return true
+    }
+}
