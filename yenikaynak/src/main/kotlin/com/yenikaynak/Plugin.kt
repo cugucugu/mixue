@@ -1,4 +1,4 @@
-package com.cugucugu.yenikaynak
+package com.yenikaynak
 
 import android.content.Context
 import com.lagradost.cloudstream3.plugins.CloudstreamPlugin
@@ -8,5 +8,8 @@ import com.lagradost.cloudstream3.plugins.Plugin
 class YenikaynakPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(YenikaynakProvider())
+        registerExtractorAPI(DoodStreamExtractor())
+        registerExtractorAPI(StreamTapeExtractor())
+        registerExtractorAPI(VidmolyExtractor())
     }
 }
