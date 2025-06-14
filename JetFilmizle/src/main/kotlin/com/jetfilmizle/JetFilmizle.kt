@@ -92,6 +92,8 @@ class JetFilmizle : MainAPI() {
         }
     }
 
+    // DÜZELTME: Deprecated uyarısını bastırmak için notasyon eklendi.
+    @Suppress("DEPRECATION")
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -110,17 +112,16 @@ class JetFilmizle : MainAPI() {
                 val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframeUrl).text
                 val sources: List<D2rsSource> = mapper.readValue(d2List)
                 sources.forEach {
-                    // DÜZELTME: ExtractorLink yerine newExtractorLink kullanıldı.
+                    // DÜZELTME: ExtractorLink nesnesi doğrudan constructor ile oluşturuldu.
                     callback.invoke(
-                        newExtractorLink(
+                        ExtractorLink(
                             source = this.name,
                             name = "D2rs - ${it.label}",
-                            url = "https://d2rs.com/zeus/${it.file}"
-                        ) {
-                            this.quality = getQualityFromName(it.label)
-                            this.isM3u8 = it.type != "video/mp4"
-                            this.headers = mapOf("Referer" to mainUrl)
-                        }
+                            url = "https://d2rs.com/zeus/${it.file}",
+                            referer = mainUrl,
+                            quality = getQualityFromName(it.label),
+                            isM3u8 = it.type != "video/mp4"
+                        )
                     )
                 }
             } else if (iframeUrl.contains("videolar.biz")) {
@@ -134,17 +135,16 @@ class JetFilmizle : MainAPI() {
                 val vidBizData: VidBiz = mapper.readValue(vidBizText)
                 if (vidBizData.status == "ok") {
                     vidBizData.sources.forEach {
-                        // DÜZELTME: ExtractorLink yerine newExtractorLink kullanıldı.
+                        // DÜZELTME: ExtractorLink nesnesi doğrudan constructor ile oluşturuldu.
                         callback.invoke(
-                            newExtractorLink(
+                            ExtractorLink(
                                 source = this.name,
                                 name = "VidBiz - ${it.label}",
-                                url = it.file
-                            ) {
-                                this.quality = getQualityFromName(it.label)
-                                this.isM3u8 = true
-                                this.headers = mapOf("Referer" to mainUrl)
-                            }
+                                url = it.file,
+                                referer = mainUrl,
+                                quality = getQualityFromName(it.label),
+                                isM3u8 = true
+                            )
                         )
                     }
                 }
