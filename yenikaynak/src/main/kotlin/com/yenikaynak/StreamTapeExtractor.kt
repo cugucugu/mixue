@@ -1,10 +1,8 @@
-package com.cugucugu.yenikaynak
+package com.yenikaynak
 
-import android.util.Log
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
+import com.lagradost.cloudstream3.extractors.*
 import com.lagradost.cloudstream3.utils.*
-import kotlin.random.Random
 
 class StreamTapeExtractor : ExtractorApi() {
     override val name = "StreamTape"
@@ -17,7 +15,14 @@ class StreamTapeExtractor : ExtractorApi() {
         val path = match?.groupValues?.get(1) ?: return null
         val videoUrl = "$mainUrl$path"
         return listOf(
-            ExtractorLink(name, name, videoUrl, referer = url, quality = Qualities.Unknown.value, isM3u8 = false)
+            newExtractorLink(
+                name = name,
+                source = name,
+                url = videoUrl,
+                referer = url,
+                quality = Qualities.Unknown.value,
+                isM3u8 = false
+            )
         )
     }
 }
