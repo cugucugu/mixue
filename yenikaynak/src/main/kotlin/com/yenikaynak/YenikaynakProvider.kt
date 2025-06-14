@@ -37,18 +37,15 @@ class YenikaynakProvider : MainAPI() {
         val poster = doc.selectFirst("img.aligncenter")?.absUrl("src")
         val plot = doc.selectFirst("div.entry-content p")?.text()
 
-        val sources = ArrayList<ExtractorLink>()
+        val sources = mutableListOf<ExtractorLink>()
         doc.select("iframe").forEach { iframe ->
-            val iframeUrl = iframe.attr("src")
-            loadExtractor(iframeUrl, mainUrl) {
-                sources.add(it)
-            }
+            val iframeUrl = iframe.attr("src") ?: return@forEach
+            loadExtractor(iframeUrl, mainUrl, { }, { sources.add(it) })
         }
 
-        return newMovieLoadResponse(title, url, TvType.Movie) {
+        return newMovieLoadResponse(title, url, TvType.Movie, sources) {
             this.posterUrl = poster
             this.plot = plot
-            addSources(sources)
         }
     }
 }
