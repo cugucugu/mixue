@@ -11,12 +11,14 @@ suspend fun loadVidmoly(url: String, referer: String?): List<ExtractorLink> {
     val match = Regex("""file:\s*["'](https?[^"']+\.mp4)["']""").find(script) ?: return emptyList()
     val videoUrl = match.groupValues[1]
 
-    return listOf(newExtractorLink {
-        this.name = "Vidmoly"
-        this.source = "Vidmoly"
-        this.url = videoUrl
-        this.referer = referer ?: "https://vidmoly.to"
-        this.quality = Qualities.Unknown.value
-        this.isM3u8 = false
-    })
+    return listOf(
+        newExtractorLink {
+            name = "Vidmoly"
+            source = "Vidmoly"
+            this.url = videoUrl
+            this.referer = referer ?: "https://vidmoly.to"
+            quality = Qualities.Unknown.value
+            isM3u8 = false
+        }
+    )
 }
