@@ -96,6 +96,25 @@
         "name": "Noxx"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.yenikaynak.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 10939,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Cugucugu"
+        ],
+        "tvTypes": [
+            "Movies"
+        ],
+        "version": 1,
+        "internalName": "rahnamatv",
+        "description": "RahnamaTV",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/rahnamatv.cs3",
+        "name": "rahnamatv"
+    },
+    {
         "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
