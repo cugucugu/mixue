@@ -58,6 +58,25 @@
         "name": "NetflixMirror"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=noxx.to&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 13417,
+        "status": 1,
+        "language": "en",
+        "authors": [
+            "Noxx.To"
+        ],
+        "tvTypes": [
+            "TvSeries"
+        ],
+        "version": 2,
+        "internalName": "Noxx",
+        "description": "HD TV Shows (Not all links are working because of a unsolvable issue)",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/Noxx.cs3",
+        "name": "Noxx"
+    },
+    {
         "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
