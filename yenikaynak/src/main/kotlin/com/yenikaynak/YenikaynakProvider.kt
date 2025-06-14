@@ -1,6 +1,5 @@
 package com.yenikaynak
 
-// Gerekli kütüphaneleri ve CloudStream API'lerini import ediyoruz.
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
@@ -10,42 +9,48 @@ class Yenikaynak : MainAPI() {
     // Eklenti ile ilgili temel bilgileri tanımlıyoruz.
     override var mainUrl = "https://www.yenikaynak.com"
     override var name = "Yenikaynak"
-    override val hasMainPage = true // Anasayfa desteği var.
-    override var lang = "tr" // İçerik dili Türkçe.
-    override val hasDownloadSupport = true // İndirme desteği var.
-    override val supportedTypes = setOf( // Film ve dizi türlerini destekliyor.
+    override val hasMainPage = true
+    override var lang = "tr"
+    override val hasDownloadSupport = true
+    override val supportedTypes = setOf(
         TvType.Movie,
         TvType.TvSeries
     )
 
     // Anasayfadaki içerikleri yükleyen fonksiyon.
+    // DEĞİŞİKLİK: Anasayfa kategorileri isteğiniz üzerine güncellendi.
     override val mainPage = mainPageOf(
-        "/diziler" to "Son Eklenen Diziler",
-        "/filmler" to "Son Eklenen Filmler",
+        "/diziler/page/" to "Son Eklenen Diziler",
+        "/tasavvufi-filmler/page/" to "Tasavvufi Filmler",
+        "/aile-filmleri/page/" to "Aile Filmleri",
+        "/genclik-filmleri/page/" to "Gençlik Filmleri",
+        "/savas/page/" to "Savaş Filmleri",
+        "/komedi-filmleri/page/" to "Komedi Filmleri",
+        "/romantik-filmleri/page/" to "Romantik Filmleri",
+        "/tarihi-film-ve-diziler/page/" to "Tarihi Filmler ve Diziler",
+        "/dram-filmleri" to "Dram Filmleri",
     )
 
     // Anasayfa bölümlerini ve arama sonuçlarını işleyen fonksiyon.
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // Siteye istek atıp HTML içeriğini alıyoruz.
-        val document = app.get(mainUrl + request.data).document
-        // Anasayfadaki her bir film/dizi kartını temsil eden HTML elementlerini seçiyoruz.
-        // NOT: Sitenin tasarımı değişirse bu seçici ("div.ml-item") güncellenmelidir.
-        val home = document.select("div.ml-item").mapNotNull {
+        // Sayfa numarası ile birlikte tam URL'yi oluşturuyoruz.
+        val url = mainUrl + request.data + page
+        val document = app.get(url).document
+
+        // DEĞİŞİKLİK: Sitenin yeni tasarımında içerik kutuları "div.ml-item" yerine "article" etiketi içinde.
+        val home = document.select("article").mapNotNull {
             it.toSearchResult()
         }
-        // Sonuçları bir başlık altında gruplayarak anasayfada gösteriyoruz.
         return newHomePageResponse(request.name, home)
     }
 
     // Arama fonksiyonu.
     override suspend fun search(query: String): List<SearchResponse> {
-        // Arama için özel URL oluşturuyoruz.
         val url = "$mainUrl/?s=$query"
         val document = app.get(url).document
 
-        // Arama sonuçları sayfasındaki her bir öğeyi seçiyoruz.
-        // NOT: Sitenin tasarımı değişirse bu seçici ("div.ml-item") güncellenmelidir.
-        return document.select("div.ml-item").mapNotNull {
+        // DEĞİŞİKLİK: Arama sonuçları da artık "article" etiketi kullanıyor.
+        return document.select("article").mapNotNull {
             it.toSearchResult()
         }
     }
@@ -54,34 +59,39 @@ class Yenikaynak : MainAPI() {
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
 
-        // Başlığı alıyoruz.
-        val title = document.selectFirst("div.mvic-desc > h3")?.text()?.trim() ?: ""
-        // Poster resminin URL'sini alıyoruz.
-        val posterUrl = document.selectFirst("div.mvic-thumb > img")?.attr("src")
-        // Film/dizi özetini alıyoruz.
-        val plot = document.selectFirst("div.mov-desc")?.text()?.trim() ?: ""
+        // DEĞİŞİKLİK: Başlık, poster ve özet için seçiciler güncellendi.
+        val title = document.selectFirst("div.single_tabs h1.title")?.text()?.trim() ?: ""
+        val posterUrl = document.selectFirst("div.poster > img")?.attr("src")
+        val plot = document.selectFirst("div.wp-content > p")?.text()?.trim() ?: ""
+        val year = document.selectFirst("span.year")?.text()?.toIntOrNull()
 
-        // Eğer bir diziyse, bölümleri de yüklüyoruz.
-        val episodes = document.select("ul.episodios li").map {
-            val epNum = it.selectFirst("div.numerando")?.text()?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
-            val seasonNum = it.selectFirst("span.se-p")?.text()?.replace(Regex("[^0-9]"), "")?.toIntOrNull()
-            newEpisode(it.selectFirst("a")?.attr("href") ?: "") {
-                name = it.selectFirst("div.episodiotitle > a")?.text()
-                episode = epNum
+        // DEĞİŞİKLİK: Bölüm listesinin seçicisi güncellendi.
+        val episodes = document.select("ul.episodios > li").mapNotNull { el ->
+            val href = el.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val epName = el.selectFirst("div.numerando")?.text()
+            val epTitle = el.selectFirst("div.episodiotitle")?.text()
+            val seasonNum = el.selectFirst("img")?.attr("src")?.substringAfter("s")?.substringBefore(".png")?.toIntOrNull()
+
+            newEpisode(href) {
+                name = if (!epTitle.isNullOrEmpty()) "$epName - $epTitle" else epName
                 season = seasonNum
+                // Bölüm numarasını "1. Bölüm" gibi metinlerden ayıklıyoruz.
+                episode = epName?.filter { it.isDigit() }?.toIntOrNull()
             }
-        }.reversed() // Genellikle sitelerde bölümler tersten sıralanır.
+        }.reversed()
 
-        // İçeriğin türüne göre (dizi mi, film mi) uygun LoadResponse'u döndürüyoruz.
         return if (episodes.isNotEmpty()) {
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = posterUrl
                 this.plot = plot
+                this.year = year
             }
         } else {
+            // Filmlerin video linkleri direkt "load" fonksiyonunda yüklendiği için "data" olarak URL'yi veriyoruz.
             newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = posterUrl
                 this.plot = plot
+                this.year = year
             }
         }
     }
@@ -93,13 +103,10 @@ class Yenikaynak : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        // Film/dizi sayfasının HTML'ini alıyoruz.
         val document = app.get(data).document
-        // Video oynatıcısını içeren iframe'leri veya linkleri buluyoruz.
-        // NOT: Sitenin oynatıcı yapısı değişirse bu seçiciler güncellenmelidir.
-        document.select("div.video-options ul li a").forEach {
-            // Linkin içerdiği URL'yi alıyoruz.
-            val embedUrl = it.attr("data-url")
+        // DEĞİŞİKLİK: Video kaynaklarını barındıran iframe'lerin seçicisi güncellendi.
+        document.select("div.source-box iframe").forEach {
+            val embedUrl = it.attr("src")
             // CloudStream'in yerleşik extractor'larını kullanarak video linkini çözmeye çalışıyoruz.
             loadExtractor(embedUrl, data, subtitleCallback, callback)
         }
@@ -108,15 +115,14 @@ class Yenikaynak : MainAPI() {
 
     // HTML elementini bir SearchResponse nesnesine dönüştüren yardımcı fonksiyon.
     private fun Element.toSearchResult(): SearchResponse? {
-        val link = this.selectFirst("a") ?: return null
-        val href = link.attr("href")
-        // Geçerli bir URL değilse atla.
-        if (!href.contains(mainUrl)) return null
+        // DEĞİŞİKLİK: Yeni yapıya göre link, başlık ve poster seçicileri güncellendi.
+        val href = this.selectFirst("a")?.attr("href") ?: return null
+        if (!href.startsWith(mainUrl)) return null
 
-        val title = this.selectFirst("h2")?.text() ?: this.selectFirst("span.mli-title")?.text() ?: ""
-        val posterUrl = this.selectFirst("img")?.attr("data-original")
+        val title = this.selectFirst("h2")?.text() ?: ""
+        val posterUrl = this.selectFirst("img")?.attr("src")
 
-        // İçeriğin dizi mi film mi olduğunu URL'den anlamaya çalışıyoruz.
+        // URL'den içerik türünü anlama mantığı korunuyor.
         return if (href.contains("/dizi/")) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
                 this.posterUrl = posterUrl
