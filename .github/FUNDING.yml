@@ -1,5 +1,8 @@
-
-
-github          : cugucugu
-buy_me_a_coffee : cugucugu
-custom          : ["https://github.com/cugucugu"]
+github: [Cugucugu]            # GitHub Sponsors kullanıcı adınız
+patreon: cugucugu             # Patreon kullanıcı adınız
+ko_fi: cugucugu               # Ko-fi kullanıcı adınız
+buy_me_a_coffee: cugucugu     # buymeacoffee.com kullanıcı adınız
+open_collective: cugucugu     # OpenCollective profil adınız
+liberapay: cugucugu           # Liberapay kullanıcı adınız
+issuehunt: cugucugu           # IssueHunt profil adınız
+custom: ['https://example.com/destek']  # Kendi bağış veya destek sayfanız (isteğe bağlı)
