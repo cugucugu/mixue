@@ -1,62 +1,42 @@
-# mixue
-CloudStream mix plugins
-# `shortcut: mixue`
+<h1 align="center">🍧 mixue - Cloudstream Plugin Paketi</h1>
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Cloudstream-blueviolet?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/status-Aktif-success?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/desteklenen_eklenti_sayısı-7-lightgrey?style=for-the-badge" />
+</p>
 
-**⚠️ This is currently under development, dont use it yet if you're not comfortable with constantly merging new changes**
+<p align="center">
+  <i>Cloudstream 3 için kişisel bir eklenti arşividir.</i><br/>
+  <b>Hızlı, düzenli ve kolay erişilebilir kaynaklar sunar.</b>
+</p>
 
-# `Cloudstream3 Plugin Repo Template`
+---
 
-Template for a [Cloudstream3](https://github.com/recloudstream) plugin repo
+## 📦 İçerik
 
-**⚠️ Make sure you check "Include all branches" when using this template**
+Bu repo şu anda aşağıdaki eklentileri barındırmaktadır:
 
- 
-## Getting started with writing your first plugin
+| 🔌 Eklenti Adı      | 🎯 İçerik Türü        | 🌍 Kaynak |
+|---------------------|-----------------------|------------|
+| `Hdfilmcehennemi`   | Film / Dizi           | TR         |
+| `Rectv`             | Canlı TV              | TR         |
+| `Noxx`              | Dizi                  | EN         |
+| `Yenikaynak`        | Film / Dizi           | TR         |
+| `BelgeselX`         | Belgesel              | TR         |
+| `Jetfilmizle`       | Film                  | TR         |
+| `Netflixmirror`     | Netflix Yansımaları   | Global     |
 
-This template includes 1 example plugin.
+> Yeni eklentiler geldikçe liste güncellenecektir.
 
-1. Open the root build.gradle.kts, read the comments and replace all the placeholders
-2. Familiarize yourself with the project structure. Most files are commented
-3. Build or deploy your first plugin using:
-   - Windows: `.\gradlew.bat ExampleProvider:make` or `.\gradlew.bat ExampleProvider:deployWithAdb`
-   - Linux & Mac: `./gradlew ExampleProvider:make` or `./gradlew ExampleProvider:deployWithAdb`
+---
 
+## 📌 Notlar
 
-## Granting All Files Access on Newer Android Devices
+- Bu eklentiler halka açık web sitelerinden veri çeker.
+- Telif hakkı ihlali yapılmaz, kaynaklara yalnızca yönlendirme yapılır.
+- Kullanım tamamen kişisel ve eğitim amaçlıdır.
 
-For local plugin testing, you need to grant the app "All Files Access" on newer Android devices (Android 11 and above). Here’s how to do it:
+---
 
-### Using ADB
+> ❄️ *Daha fazla eklenti, iyileştirme ve güncelleme yolda!*
 
-* `adb shell appops set --uid PACKAGE_NAME MANAGE_EXTERNAL_STORAGE allow`
-* Replace `PACKAGE_NAME` with the name of the package for the Cloudstream3 version you are using:
-   - debug: `com.lagradost.cloudstream3.prerelease.debug`
-   - prerelease: `com.lagradost.cloudstream3.prerelease`
-   - stable: `com.lagradost.cloudstream3`
-
-### Manually
-
-1. **Open Settings**: Go to your device’s Settings menu.
-
-2. **Navigate to Special Access**:
-   - Tap on "Apps & notifications" or "Apps".
-   - Select "Special app access" or "Special access".
-
-3. **Select All Files Access**:
-   - Tap on "All files access".
-   - It may be under the three vertical dots menu towards the top of the screen.
-
-4. **Grant Access to the App**: Find the app in the list and tap on it to toggle it, if it is not already enabled.
-
-6. **Restart the App**: Close and reopen the app to apply the changes.
-
-
-## License
-
-Everything in this repo is released into the public domain. You may use it however you want with no conditions whatsoever
-
-
-## Attribution
-
-This template as well as the gradle plugin and the whole plugin system is **heavily** based on [Aliucord](https://github.com/Aliucord).
-*Go use it, it's a great mobile discord client mod!*
