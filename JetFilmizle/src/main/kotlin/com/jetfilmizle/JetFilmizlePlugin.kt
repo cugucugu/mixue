@@ -5,8 +5,10 @@ import com.lagradost.cloudstream3.plugins.Plugin
 import android.content.Context
 
 @CloudstreamPlugin
-class JetFilmizlePlugin : Plugin() {
+class JetFilmizlePlugin: Plugin() {
     override fun load(context: Context) {
+        // Ana sağlayıcıyı ve gerekli extractor'ı kaydeder.
         registerMainAPI(JetFilmizle())
+        registerExtractorAPI(PixelDrain())
     }
 }
