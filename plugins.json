@@ -39,6 +39,25 @@
         "name": "HDFilmCehennemi"
     },
     {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=https://jetfilmizle.de&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 13708,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "jetfilmizle"
+        ],
+        "tvTypes": [
+            "Movie"
+        ],
+        "version": 34,
+        "internalName": "JetFilmizle",
+        "description": "Binlerce Film \u0130zleme Se\u00e7ene\u011fiyle En \u0130yi Film \u0130zleme Sitesi",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/JetFilmizle.cs3",
+        "name": "JetFilmizle"
+    },
+    {
         "iconUrl": "https://github.com/SaurabhKaperwan/CSX/raw/refs/heads/master/NetflixMirrorProvider/icon.png",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
