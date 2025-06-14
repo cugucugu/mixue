@@ -1,3 +1,5 @@
+package com.yenikaynak
+
 // Gerekli kütüphaneleri ve CloudStream API'lerini import ediyoruz.
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
