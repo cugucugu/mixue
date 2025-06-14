@@ -8,8 +8,8 @@ import com.lagradost.cloudstream3.plugins.Plugin
 class YenikaynakPlugin : Plugin() {
     override fun load(context: Context) {
         registerMainAPI(YenikaynakProvider())
-        registerExtractorAPI(DoodStreamExtractor())
-        registerExtractorAPI(StreamTapeExtractor())
-        registerExtractorAPI(VidmolyExtractor())
+        registerExtractor(DoodStreamExtractor())
+        registerExtractor(StreamTapeExtractor())
+        registerExtractor(VidmolyExtractor())
     }
 }
