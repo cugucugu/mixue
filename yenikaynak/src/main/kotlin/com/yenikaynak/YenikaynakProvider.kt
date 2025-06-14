@@ -17,8 +17,7 @@ class Yenikaynak : MainAPI() {
         TvType.TvSeries
     )
 
-    // Anasayfadaki içerikleri yükleyen fonksiyon.
-    // DEĞİŞİKLİK: Anasayfa kategorileri isteğiniz üzerine güncellendi.
+    // Anasayfadaki kategoriler korunuyor.
     override val mainPage = mainPageOf(
         "/diziler/page/" to "Son Eklenen Diziler",
         "/tasavvufi-filmler/page/" to "Tasavvufi Filmler",
@@ -31,72 +30,74 @@ class Yenikaynak : MainAPI() {
         "/dram-filmleri" to "Dram Filmleri",
     )
 
-    // Anasayfa bölümlerini ve arama sonuçlarını işleyen fonksiyon.
+    // Anasayfa ve arama sonuçları listeleme fonksiyonu.
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        // Sayfa numarası ile birlikte tam URL'yi oluşturuyoruz.
         val url = mainUrl + request.data + page
         val document = app.get(url).document
 
-        // DEĞİŞİKLİK: Sitenin yeni tasarımında içerik kutuları "div.ml-item" yerine "article" etiketi içinde.
+        // Liste öğesi seçicisi ("article") hala geçerli. Sorun, öğe içindeki detayları çeken fonksiyondaydı.
         val home = document.select("article").mapNotNull {
             it.toSearchResult()
         }
         return newHomePageResponse(request.name, home)
     }
 
-    // Arama fonksiyonu.
     override suspend fun search(query: String): List<SearchResponse> {
         val url = "$mainUrl/?s=$query"
         val document = app.get(url).document
-
-        // DEĞİŞİKLİK: Arama sonuçları da artık "article" etiketi kullanıyor.
         return document.select("article").mapNotNull {
             it.toSearchResult()
         }
     }
 
     // Seçilen bir film veya dizinin detaylarını yükleyen fonksiyon.
+    // DEĞİŞİKLİK: Bu fonksiyon, film ve dizi sayfalarının farklı yapılarını ele alacak şekilde tamamen yeniden yazıldı.
     override suspend fun load(url: String): LoadResponse {
         val document = app.get(url).document
+        val isTvSeries = url.contains("/dizi/")
 
-        // DEĞİŞİKLİK: Başlık, poster ve özet için seçiciler güncellendi.
-        val title = document.selectFirst("div.single_tabs h1.title")?.text()?.trim() ?: ""
-        val posterUrl = document.selectFirst("div.poster > img")?.attr("src")
-        val plot = document.selectFirst("div.wp-content > p")?.text()?.trim() ?: ""
-        val year = document.selectFirst("span.year")?.text()?.toIntOrNull()
+        return if (isTvSeries) {
+            // --- DİZİ SAYFASI İŞLEMLERİ ---
+            val title = document.selectFirst("div.data > h1")?.text() ?: ""
+            val posterUrl = document.selectFirst("div.poster > img")?.attr("src")
+            val plot = document.selectFirst("div.wp-content > p")?.text()?.trim()
+            val year = document.selectFirst("span.year")?.text()?.toIntOrNull()
 
-        // DEĞİŞİKLİK: Bölüm listesinin seçicisi güncellendi.
-        val episodes = document.select("ul.episodios > li").mapNotNull { el ->
-            val href = el.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val epName = el.selectFirst("div.numerando")?.text()
-            val epTitle = el.selectFirst("div.episodiotitle")?.text()
-            val seasonNum = el.selectFirst("img")?.attr("src")?.substringAfter("s")?.substringBefore(".png")?.toIntOrNull()
+            val episodes = document.select("div.se-c").flatMap { seasonContainer ->
+                val seasonId = seasonContainer.attr("id").filter { it.isDigit() }.toIntOrNull()
+                seasonContainer.select("ul.episodios > li").mapNotNull { el ->
+                    val href = el.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+                    val epNumStr = el.selectFirst("div.numerando")?.text()
+                    val epTitle = el.selectFirst("div.episodiotitle")?.text()
+                    newEpisode(href) {
+                        name = if (epTitle.isNullOrBlank()) epNumStr else "$epNumStr - $epTitle"
+                        season = seasonId
+                        episode = epNumStr?.filter { it.isDigit() }?.toIntOrNull()
+                    }
+                }
+            }.reversed()
 
-            newEpisode(href) {
-                name = if (!epTitle.isNullOrEmpty()) "$epName - $epTitle" else epName
-                season = seasonNum
-                // Bölüm numarasını "1. Bölüm" gibi metinlerden ayıklıyoruz.
-                episode = epName?.filter { it.isDigit() }?.toIntOrNull()
-            }
-        }.reversed()
-
-        return if (episodes.isNotEmpty()) {
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = posterUrl
                 this.plot = plot
                 this.year = year
             }
         } else {
-            // Filmlerin video linkleri direkt "load" fonksiyonunda yüklendiği için "data" olarak URL'yi veriyoruz.
+            // --- FİLM SAYFASI İŞLEMLERİ ---
+            val title = document.selectFirst("h1.entry-title")?.text() ?: ""
+            val posterUrl = document.selectFirst("div.post-thumbnail img")?.attr("src")
+            val plot = document.selectFirst("div.entry-content")?.text()?.trim()
+
+            // Filmlerin bölümü olmadığı için video linki direkt bu sayfanın URL'si ile yüklenir.
             newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = posterUrl
                 this.plot = plot
-                this.year = year
             }
         }
     }
 
     // Video linklerini (kaynaklarını) çıkaran fonksiyon.
+    // DEĞİŞİKLİK: Video oynatıcısının iframe'ini daha kesin bir seçici ile buluyor.
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
@@ -104,25 +105,27 @@ class Yenikaynak : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
-        // DEĞİŞİKLİK: Video kaynaklarını barındıran iframe'lerin seçicisi güncellendi.
-        document.select("div.source-box iframe").forEach {
+        // Film ve dizi bölümlerinde ortak olan oynatıcı seçicisi kullanılıyor.
+        document.select("div.peli-info iframe, div.source-box iframe").forEach {
             val embedUrl = it.attr("src")
-            // CloudStream'in yerleşik extractor'larını kullanarak video linkini çözmeye çalışıyoruz.
-            loadExtractor(embedUrl, data, subtitleCallback, callback)
+            if (embedUrl.isNotBlank()) {
+                loadExtractor(embedUrl, data, subtitleCallback, callback)
+            }
         }
         return true
     }
 
     // HTML elementini bir SearchResponse nesnesine dönüştüren yardımcı fonksiyon.
+    // DEĞİŞİKLİK: Liste ve arama sonuçlarındaki öğelerin yeni yapısına göre güncellendi.
     private fun Element.toSearchResult(): SearchResponse? {
-        // DEĞİŞİKLİK: Yeni yapıya göre link, başlık ve poster seçicileri güncellendi.
-        val href = this.selectFirst("a")?.attr("href") ?: return null
+        val titleElement = this.selectFirst("h2.entry-title a") ?: return null
+        val href = titleElement.attr("href")
+        // Geçersiz veya reklam linklerini atla
         if (!href.startsWith(mainUrl)) return null
 
-        val title = this.selectFirst("h2")?.text() ?: ""
-        val posterUrl = this.selectFirst("img")?.attr("src")
+        val title = titleElement.text()
+        val posterUrl = this.selectFirst("div.post-thumbnail img")?.attr("src")
 
-        // URL'den içerik türünü anlama mantığı korunuyor.
         return if (href.contains("/dizi/")) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
                 this.posterUrl = posterUrl
