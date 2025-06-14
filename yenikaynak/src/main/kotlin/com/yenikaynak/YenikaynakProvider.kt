@@ -27,7 +27,7 @@ class Yenikaynak : MainAPI() {
         "/komedi-filmleri/page/" to "Komedi Filmleri",
         "/romantik-filmleri/page/" to "Romantik Filmleri",
         "/tarihi-film-ve-diziler/page/" to "Tarihi Filmler ve Diziler",
-        "/dram-filmleri/page/" to "Dram Filmleri"
+        "/dram-filmleri" to "Dram Filmleri"
     )
 
     // Anasayfa ve arama sonuçları listeleme fonksiyonu
@@ -63,7 +63,8 @@ class Yenikaynak : MainAPI() {
             // --- DİZİ SAYFASI İŞLEMLERİ ---
             // DEĞİŞİKLİK: Dizi detayları için seçiciler tamamen güncellendi.
             val title = document.selectFirst("div.mvic-desc > h3")?.text()?.trim() ?: ""
-            val posterUrl = document.selectFirst("div.mvic-thumb > img")?.attr("src")
+            // GÖRSEL URL DÜZELTMESİ: Hatalı thumbnail yolunu kaldırır.
+            val posterUrl = document.selectFirst("div.mvic-thumb > img")?.attr("src")?.replace(Regex("""/thumb_.*?/"""), "/")
             val plot = document.selectFirst("div.mov-desc")?.text()?.trim()
             val year = document.select("div.mvic-info div.mvici-right a[href*=/year/]").firstOrNull()?.text()?.toIntOrNull()
 
@@ -90,7 +91,8 @@ class Yenikaynak : MainAPI() {
             // --- FİLM SAYFASI İŞLEMLERİ ---
             // DEĞİŞİKLİK: Film detayları için de seçiciler güncellendi.
             val title = document.selectFirst("div.mvic-desc > h3")?.text()?.trim() ?: ""
-            val posterUrl = document.selectFirst("div.mvic-thumb > img")?.attr("src")
+            // GÖRSEL URL DÜZELTMESİ: Hatalı thumbnail yolunu kaldırır.
+            val posterUrl = document.selectFirst("div.mvic-thumb > img")?.attr("src")?.replace(Regex("""/thumb_.*?/"""), "/")
             val plot = document.selectFirst("div.mov-desc")?.text()?.trim()
             val year = document.select("div.mvic-info div.mvici-right a[href*=/year/]").firstOrNull()?.text()?.toIntOrNull()
 
@@ -129,7 +131,8 @@ class Yenikaynak : MainAPI() {
         // DEĞİŞİKLİK: Başlık ve poster için daha doğru seçiciler kullanıldı.
         // Lazy loading için "data-original" deneniyor, yoksa "src" alınıyor.
         val title = linkElement.attr("title")
-        val posterUrl = linkElement.selectFirst("img")?.let { it.attr("data-original").ifBlank { it.attr("src") } }
+        // GÖRSEL URL DÜZELTMESİ: Hatalı thumbnail yolunu kaldırır.
+        val posterUrl = linkElement.selectFirst("img")?.let { it.attr("data-original").ifBlank { it.attr("src") } }?.replace(Regex("""/thumb_.*?/"""), "/")
 
         return if (href.contains("/dizi/")) {
             newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
