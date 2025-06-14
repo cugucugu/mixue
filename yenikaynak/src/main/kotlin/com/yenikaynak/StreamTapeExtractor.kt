@@ -1,7 +1,6 @@
 package com.yenikaynak
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.extractors.*
 import com.lagradost.cloudstream3.utils.*
 
 class StreamTapeExtractor : ExtractorApi() {
@@ -14,15 +13,14 @@ class StreamTapeExtractor : ExtractorApi() {
         val match = Regex("""'robotlink'\s*,\s*'([^']+)'""").find(res.text)
         val path = match?.groupValues?.get(1) ?: return null
         val videoUrl = "$mainUrl$path"
-        return listOf(
-            newExtractorLink(
-                name = name,
-                source = name,
-                url = videoUrl,
-                referer = url,
-                quality = Qualities.Unknown.value,
-                isM3u8 = false
-            )
-        )
+
+        return listOf(newExtractorLink {
+            this.name = this@StreamTapeExtractor.name
+            this.source = this@StreamTapeExtractor.name
+            this.url = videoUrl
+            this.referer = url
+            this.quality = Qualities.Unknown.value
+            this.isM3u8 = false
+        })
     }
 }
