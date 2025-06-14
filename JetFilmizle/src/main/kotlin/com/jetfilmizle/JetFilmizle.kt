@@ -9,6 +9,9 @@ import com.lagradost.cloudstream3.utils.*
 
 // Gerekli veri sınıfları ve JsUnpacker gibi araçlar eklendi.
 import com.lagradost.cloudstream3.utils.JsUnpacker
+// DÜZELTME: Eksik olan okhttp3 importları eklendi.
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 
 // JSON verilerini ayrıştırmak için gerekli veri sınıfları
 private data class D2rsSource(
@@ -80,7 +83,6 @@ class JetFilmizle : MainAPI() {
         val tags = document.select("div.film-meta span:contains(Kategori) a").map { it.text() }
         val rating = document.selectFirst("div.film-meta span.film-imdb-rating")?.text()?.trim()?.toRatingInt()
         
-        // DÜZELTME: Oyuncular doğru seçici ile alınıyor ve ActorData listesine çevriliyor.
         val actors = document.select("div.film-meta span:contains(Oyuncular) a").map {
             ActorData(Actor(it.text()))
         }
@@ -94,7 +96,6 @@ class JetFilmizle : MainAPI() {
             this.tags = tags
             this.rating = rating
             this.recommendations = recommendations
-            // DÜZELTME: addActors yerine 'actors' özelliğine atama yapılıyor.
             this.actors = actors
         }
     }
@@ -106,7 +107,6 @@ class JetFilmizle : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
-        // JSON işleyici tanımlandı
         val mapper = jacksonObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
         document.select("div.film-embed iframe, div.film-options a[data-iframe]").apmap { element ->
@@ -118,8 +118,9 @@ class JetFilmizle : MainAPI() {
                 val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframeUrl).text
                 val sources: List<D2rsSource> = mapper.readValue(d2List)
                 sources.forEach {
+                    // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
                     callback.invoke(
-                        ExtractorLink(
+                        newExtractorLink(
                             this.name,
                             "D2rs - ${it.label}",
                             "https://d2rs.com/zeus/${it.file}",
@@ -140,8 +141,9 @@ class JetFilmizle : MainAPI() {
                 val vidBizData: VidBiz = mapper.readValue(vidBizText)
                 if (vidBizData.status == "ok") {
                     vidBizData.sources.forEach {
+                        // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
                         callback.invoke(
-                            ExtractorLink(
+                            newExtractorLink(
                                 this.name,
                                 "VidBiz - ${it.label}",
                                 it.file,
@@ -153,7 +155,6 @@ class JetFilmizle : MainAPI() {
                     }
                 }
             } else {
-                // Diğer tüm iframe'ler için genel yükleyici
                 loadExtractor(iframeUrl, data, subtitleCallback, callback)
             }
         }
