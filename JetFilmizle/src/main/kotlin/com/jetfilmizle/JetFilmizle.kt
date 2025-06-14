@@ -9,7 +9,7 @@ import com.lagradost.cloudstream3.utils.*
 
 // Gerekli veri sınıfları ve JsUnpacker gibi araçlar eklendi.
 import com.lagradost.cloudstream3.utils.JsUnpacker
-// DÜZELTME: Eksik olan okhttp3 importları eklendi.
+// Eksik olan okhttp3 importları eklendi.
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -118,16 +118,17 @@ class JetFilmizle : MainAPI() {
                 val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframeUrl).text
                 val sources: List<D2rsSource> = mapper.readValue(d2List)
                 sources.forEach {
-                    // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
+                    // DÜZELTME: newExtractorLink fonksiyonu güncel API yapısına göre düzenlendi.
                     callback.invoke(
                         newExtractorLink(
-                            this.name,
-                            "D2rs - ${it.label}",
-                            "https://d2rs.com/zeus/${it.file}",
-                            mainUrl,
-                            getQualityFromName(it.label),
-                            it.type == "video/mp4"
-                        )
+                            source = this.name,
+                            name = "D2rs - ${it.label}",
+                            url = "https://d2rs.com/zeus/${it.file}"
+                        ) {
+                            this.referer = mainUrl
+                            this.quality = getQualityFromName(it.label)
+                            this.isM3u8 = it.type != "video/mp4"
+                        }
                     )
                 }
             } else if (iframeUrl.contains("videolar.biz")) {
@@ -141,16 +142,17 @@ class JetFilmizle : MainAPI() {
                 val vidBizData: VidBiz = mapper.readValue(vidBizText)
                 if (vidBizData.status == "ok") {
                     vidBizData.sources.forEach {
-                        // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
+                        // DÜZELTME: newExtractorLink fonksiyonu güncel API yapısına göre düzenlendi.
                         callback.invoke(
                             newExtractorLink(
-                                this.name,
-                                "VidBiz - ${it.label}",
-                                it.file,
-                                mainUrl,
-                                getQualityFromName(it.label),
-                                isM3u8 = true
-                            )
+                                source = this.name,
+                                name = "VidBiz - ${it.label}",
+                                url = it.file
+                            ) {
+                                this.referer = mainUrl
+                                this.quality = getQualityFromName(it.label)
+                                this.isM3u8 = true
+                            }
                         )
                     }
                 }
