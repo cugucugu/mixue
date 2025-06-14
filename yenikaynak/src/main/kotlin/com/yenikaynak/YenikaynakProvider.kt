@@ -40,10 +40,8 @@ class YenikaynakProvider : MainAPI() {
         val sources = mutableListOf<ExtractorLink>()
         doc.select("iframe").forEach { iframe ->
             val iframeUrl = iframe.attr("src")
-            when {
-                "dood" in iframeUrl -> sources += loadDoodStream(iframeUrl, mainUrl)
-                "streamtape" in iframeUrl -> sources += loadStreamTape(iframeUrl, mainUrl)
-                "vidmoly" in iframeUrl -> sources += loadVidmoly(iframeUrl, mainUrl)
+            if ("vidmoly" in iframeUrl) {
+                sources += loadVidmoly(iframeUrl, mainUrl)
             }
         }
 
