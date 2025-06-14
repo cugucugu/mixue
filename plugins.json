@@ -42,7 +42,7 @@
         "iconUrl": "https://www.google.com/s2/favicons?domain=https://jetfilmizle.de&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
-        "fileSize": 13708,
+        "fileSize": 11601,
         "status": 1,
         "language": "tr",
         "authors": [
@@ -115,5 +115,24 @@
         "description": "RecTv APK, T\u00fcrkiye\u2019deki en pop\u00fcler \u00c7evrimi\u00e7i Medya Ak\u0131\u015f platformlar\u0131ndan biridir. Filmlerin, Canl\u0131 Sporlar\u0131n, Web Dizilerinin ve \u00e7ok daha fazlas\u0131n\u0131n keyfini \u00fccretsiz \u00e7\u0131kar\u0131n.",
         "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/RecTV.cs3",
         "name": "RecTV"
+    },
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.yenikaynak.com&sz=%size%",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/cugucugu/mixue",
+        "fileSize": 10116,
+        "status": 1,
+        "language": "tr",
+        "authors": [
+            "Cugucugu"
+        ],
+        "tvTypes": [
+            "Movies"
+        ],
+        "version": 1,
+        "internalName": "yenikaynak",
+        "description": "Yenikaynak.com i\u00e7erik sa\u011flay\u0131c\u0131s\u0131",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/yenikaynak.cs3",
+        "name": "yenikaynak"
     }
 ]
