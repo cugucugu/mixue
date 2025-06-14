@@ -110,16 +110,16 @@ class JetFilmizle : MainAPI() {
                 val d2List = app.post("https://d2rs.com/zeus/api.php", data = mapOf("q" to parameter), referer = iframeUrl).text
                 val sources: List<D2rsSource> = mapper.readValue(d2List)
                 sources.forEach {
-                    // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
+                    // DÜZELTME: ExtractorLink yerine newExtractorLink kullanıldı.
                     callback.invoke(
                         newExtractorLink(
                             source = this.name,
                             name = "D2rs - ${it.label}",
                             url = "https://d2rs.com/zeus/${it.file}"
                         ) {
-                            this.referer = mainUrl
                             this.quality = getQualityFromName(it.label)
                             this.isM3u8 = it.type != "video/mp4"
+                            this.headers = mapOf("Referer" to mainUrl)
                         }
                     )
                 }
@@ -131,21 +131,19 @@ class JetFilmizle : MainAPI() {
                 val apiUrl = "https://s2.videolar.biz/api/"
                 val requestBody = kaken.toRequestBody("text/plain".toMediaType())
                 val vidBizText = app.post(apiUrl, requestBody = requestBody, referer = iframeUrl).text
-                // Bu satır artık harici JetFilmizleModels.kt dosyasındaki VidBiz sınıfını kullanacak.
                 val vidBizData: VidBiz = mapper.readValue(vidBizText)
                 if (vidBizData.status == "ok") {
-                    // Bu döngü de harici 'Source' sınıfı ile çalışacak.
                     vidBizData.sources.forEach {
-                        // DÜZELTME: Kullanım dışı kalan ExtractorLink yapıcısı yerine newExtractorLink fonksiyonu kullanıldı.
+                        // DÜZELTME: ExtractorLink yerine newExtractorLink kullanıldı.
                         callback.invoke(
                             newExtractorLink(
                                 source = this.name,
                                 name = "VidBiz - ${it.label}",
                                 url = it.file
                             ) {
-                                this.referer = mainUrl
                                 this.quality = getQualityFromName(it.label)
                                 this.isM3u8 = true
+                                this.headers = mapOf("Referer" to mainUrl)
                             }
                         )
                     }
