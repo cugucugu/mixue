@@ -19,7 +19,7 @@ Bu repo şu anda aşağıdaki eklentileri barındırmaktadır:
 | 🔌 Eklenti Adı      | 🎯 İçerik Türü        | 🌍 Kaynak |
 |---------------------|-----------------------|------------|
 | `Hdfilmcehennemi`   | Film / Dizi           | TR         |
-| `Rectv`             | Canlı TV              | TR         |
+| `Rectv`             | Film / Dizi           | TR         |
 | `Noxx`              | Dizi                  | EN         |
 | `Yenikaynak`        | Film / Dizi           | TR         |
 | `BelgeselX`         | Belgesel              | TR         |
