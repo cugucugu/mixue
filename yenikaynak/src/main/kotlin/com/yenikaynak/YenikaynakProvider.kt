@@ -27,7 +27,7 @@ class Yenikaynak : MainAPI() {
         "/komedi-filmleri/page/" to "Komedi Filmleri",
         "/romantik-filmleri/page/" to "Romantik Filmleri",
         "/tarihi-film-ve-diziler/page/" to "Tarihi Filmler ve Diziler",
-        "/dram-filmleri" to "Dram Filmleri"
+        "/dram-filmleri/page/" to "Dram Filmleri"
     )
 
     // Anasayfa ve arama sonuçları listeleme fonksiyonu
