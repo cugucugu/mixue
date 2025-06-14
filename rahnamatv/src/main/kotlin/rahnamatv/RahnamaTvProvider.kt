@@ -100,16 +100,16 @@ class RahnamaTvProvider : MainAPI() {
                     )
                 }
             }
-            // HATA DÜZELTMESİ: Fonksiyon LoadResponse üzerinden çağrıldı.
-            LoadResponse.newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.reversed()) {
+            // HATA DÜZELTMESİ: Fonksiyonlar doğrudan çağrıldı.
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.reversed()) {
                 this.posterUrl = poster
                 this.year = year
                 this.plot = plot
                 this.tags = tags
             }
         } else { // Film ise
-            // HATA DÜZELTMESİ: Fonksiyon LoadResponse üzerinden çağrıldı.
-            LoadResponse.newMovieLoadResponse(title, url, TvType.Movie, url) {
+            // HATA DÜZELTMESİ: Fonksiyonlar doğrudan çağrıldı.
+            newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
                 this.year = year
                 this.plot = plot
