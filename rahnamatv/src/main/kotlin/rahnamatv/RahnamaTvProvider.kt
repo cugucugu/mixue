@@ -36,16 +36,18 @@ class RahnamaTvProvider : MainAPI() {
         val home = document.select("div.item").mapNotNull {
             toSearchResponse(it)
         }
-        // HATA DÜZELTMESİ: Fonksiyon overload belirsizliğini çözmek için 'hasNextPage' parametresi kaldırıldı.
-        // Fonksiyonun bu versiyonunda hasNextPage varsayılan olarak false kabul edilir.
         return newHomePageResponse(request.name, home)
     }
     
+    // DÜZELTME: Poster ve başlık seçicileri sitenin yapısına tam uyumlu hale getirildi.
     private fun toSearchResponse(element: Element): SearchResponse? {
-        val link = element.selectFirst("a") ?: return null
-        val href = fixUrl(link.attr("href"))
-        val title = link.attr("title")
-        val posterUrl = fixUrl(link.selectFirst("img")?.let { it.attr("data-src").ifEmpty { it.attr("src") } } ?: "")
+        val linkElement = element.selectFirst("a") ?: return null
+        val href = fixUrl(linkElement.attr("href"))
+        
+        // Başlığı <h3> etiketinden al, bulamazsa <a>'nın title'ını kullan.
+        val title = linkElement.selectFirst("div.data h3")?.text() ?: linkElement.attr("title")
+        // Posteri daha spesifik bir yolla, <img> etiketinin 'src'sinden al.
+        val posterUrl = fixUrl(linkElement.selectFirst("div.image img")?.attr("src") ?: "")
 
         val tvType = when {
             href.contains("/diziler/") -> TvType.TvSeries
