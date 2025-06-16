@@ -1,91 +1,133 @@
-package com.cloudstreamplugins.rahnama
+package com.rahnamatv // Package is changed as per your suggestion
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.MainAPI
 import com.lagradost.cloudstream3.utils.*
+import org.jsoup.nodes.Element
+import com.lagradost.cloudstream3.network.CloudflareKiller
 
-class Rahnama : MainAPI() {
-    override var name = "RahnamaTV"
+// Using your suggested class name and structure with fixes.
+class RahnamaTvProvider : MainAPI() {
+    // API'nin temel bilgileri
     override var mainUrl = "https://rahnama.tv"
-    override var lang = "fa" // Farsça içerik varsa
+    override var name = "RahnamaTV"
     override val hasMainPage = true
+    override var lang = "tr" // Site dili Türkçe
     override val hasSearch = false
-    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
-
-    override val mainPage = listOf(
-        "Sinemalar" to "$mainUrl/sinemalar",
-        "Diziler" to "$mainUrl/diziler",
-        "Kısa Filmler" to "$mainUrl/kisa-filmler",
-        "Müzikler" to "$mainUrl/muzikler"
+    
+    override val supportedTypes = setOf(
+        TvType.Movie,
+        TvType.TvSeries,
+        TvType.Music
     )
 
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val home = request.dataUrl
-        val document = app.get(home).document
-        val items = document.select("article").mapNotNull {
-            val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-            val title = it.selectFirst("h2")?.text()?.trim() ?: return@mapNotNull null
-            val poster = it.selectFirst("img")?.attr("src")
-            val type = if (home.contains("/diziler")) TvType.TvSeries else TvType.Movie
-            newMovieSearchResponse(title, href, type) {
-                this.posterUrl = poster
-            }
+    private val interceptor = CloudflareKiller()
+
+    override val mainPage = mainPageOf(
+        "$mainUrl/sinemalar/" to "SİNEMALAR",
+        "$mainUrl/diziler/" to "DİZİLER",
+        "$mainUrl/kisa-filmler/" to "KISA FİLMLER",
+        "$mainUrl/muzikler/" to "MÜZİKLER"
+    )
+
+    override suspend fun getMainPage(
+        page: Int,
+        request: MainPageRequest
+    ): HomePageResponse {
+        val document = app.get(request.data, interceptor = interceptor).document
+        val home = document.select("div.item").mapNotNull {
+            toSearchResponse(it)
         }
-        return newHomePageResponse(request.name, items)
+        return newHomePageResponse(request.name, home, hasNextPage = false)
+    }
+    
+    private fun toSearchResponse(element: Element): SearchResponse? {
+        val link = element.selectFirst("a") ?: return null
+        val href = fixUrl(link.attr("href"))
+        val title = link.attr("title")
+        val posterUrl = fixUrl(link.selectFirst("img")?.let { it.attr("data-src").ifEmpty { it.attr("src") } } ?: "")
+
+        val tvType = when {
+            href.contains("/diziler/") -> TvType.TvSeries
+            href.contains("/muzikler/") -> TvType.Music
+            else -> TvType.Movie
+        }
+
+        return newMovieSearchResponse(title, href, tvType) {
+            this.posterUrl = posterUrl
+        }
     }
 
-    override suspend fun load(url: String): LoadResponse {
-        val doc = app.get(url).document
-        val title = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: return errorLoadResponse
-        val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
-        val description = doc.selectFirst("meta[property=og:description]")?.attr("content")
-
-        val episodes = mutableListOf<Episode>()
-        val base = Regex("""https://rahnama\.tv/([a-zA-Z0-9\-]+)/""").find(url)?.groupValues?.get(1)
-        if (base != null) {
-            // Dizi ise, örneğin /kaybeden -> /kaybeden-1, -2, ...
-            for (i in 1..20) {
-                val episodeUrl = "$mainUrl/$base-$i/"
-                val episodeDoc = app.get(episodeUrl).document
-                if (episodeDoc.select("video, iframe").isEmpty()) break
-                episodes.add(Episode(episodeUrl, "Bölüm $i"))
-            }
+    override suspend fun load(url: String): LoadResponse? {
+        val document = app.get(url, interceptor = interceptor).document
+        val title = document.selectFirst("meta[property=og:title]")?.attr("content")?.trim() ?: return null
+        val poster = document.selectFirst("meta[property=og:image]")?.attr("content")
+        val plot = document.selectFirst("meta[property=og:description]")?.attr("content")
+        
+        val tvType = when {
+            url.contains("/diziler/") -> TvType.TvSeries
+            url.contains("/muzikler/") -> TvType.Music
+            else -> TvType.Movie
         }
 
-        return if (episodes.isEmpty()) {
-            val videoUrl = doc.selectFirst("video source")?.attr("src")
-                ?: doc.selectFirst("iframe")?.attr("src")
-                ?: return errorLoadResponse
-            newMovieLoadResponse(title, url, TvType.Movie, videoUrl) {
-                this.posterUrl = poster
-                this.plot = description
+        return if (tvType == TvType.TvSeries) {
+            val episodes = ArrayList<Episode>()
+            // DÜZELTME: Sizin belirttiğiniz bölüm yapısına göre mantık tamamen değiştirildi.
+            // Örn: /kaybeden/ -> /kaybeden-1/, /kaybeden-2/, ... şeklinde bölümleri arar.
+            val seriesBaseSlug = url.trimEnd('/').substringAfterLast('/')
+            
+            // Olası bölümleri kontrol etmek için bir döngü oluşturulur.
+            for (i in 1..50) { // En fazla 50 bölüm varsayımı
+                val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
+                try {
+                    val episodeDoc = app.get(episodeUrl, interceptor = interceptor, referer = url).document
+                    // Eğer sayfa boş değilse ve video içeriyorsa, bölümü ekle.
+                    if (episodeDoc.select("iframe, video").isNotEmpty()) {
+                         episodes.add(
+                            Episode(
+                                data = episodeUrl,
+                                name = "Bölüm $i" // Bölüm adını dinamik olarak oluştur
+                            )
+                        )
+                    } else {
+                        // Geçerli bölüm bulunamadı, muhtemelen daha fazla bölüm yok.
+                        break
+                    }
+                } catch (e: Exception) {
+                    // Sayfa bulunamadı (404) veya başka bir hata oldu, döngüyü sonlandır.
+                    break
+                }
             }
-        } else {
+            
+            // Eğer hiç bölüm bulunamadıysa, ana sayfanın kendisi bir bölüm olabilir.
+            if (episodes.isEmpty() && document.select("iframe, video").isNotEmpty()) {
+                episodes.add(Episode(data = url, name = "Film"))
+            }
+
             newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
-                this.plot = description
+                this.plot = plot
+            }
+        } else { // Film, Kısa Film veya Müzik ise
+            newMovieLoadResponse(title, url, tvType, url) {
+                this.posterUrl = poster
+                this.plot = plot
             }
         }
     }
-
+    
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ) {
-        val doc = app.get(data).document
-        val videoUrl = doc.selectFirst("video source")?.attr("src")
-            ?: doc.selectFirst("iframe")?.attr("src")
-            ?: return
-        callback(
-            ExtractorLink(
-                source = "RahnamaTV",
-                name = "Rahnama",
-                url = videoUrl,
-                referer = mainUrl,
-                quality = Qualities.Unknown
-            )
-        )
+    ): Boolean {
+        val document = app.get(data, interceptor = interceptor).document
+        
+        document.select("iframe").forEach { iframe ->
+            val embedUrl = fixUrl(iframe.attr("src"))
+            loadExtractor(embedUrl, data, subtitleCallback, callback)
+        }
+        
+        return true
     }
 }
