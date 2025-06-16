@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.network.CloudflareKiller
 
-class RahnamaTV : MainAPI() {
+class RahnamaTvProvider : MainAPI() {
     override var mainUrl = "https://rahnama.tv"
     override var name = "RahnamaTV"
     override val hasMainPage = true
@@ -128,9 +128,11 @@ class RahnamaTV : MainAPI() {
             if (iframeUrl.contains("ok.ru")) {
                 // OK.ru video linklerini doğrudan kullanıyoruz
                 val cleanUrl = iframeUrl.substringBefore("?")
+                
+                // newExtractorLink kullanarak deprecated uyarısını düzelttim
                 callback.invoke(
-                    ExtractorLink(
-                        source = "OK.ru",
+                    newExtractorLink(
+                        source = name,
                         name = "OK.ru",
                         url = cleanUrl,
                         referer = "https://ok.ru/",
