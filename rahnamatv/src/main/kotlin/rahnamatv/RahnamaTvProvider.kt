@@ -4,6 +4,7 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.network.CloudflareKiller
+import com.lagradost.cloudstream3.extractors.Utils
 
 class RahnamaTvProvider : MainAPI() {
     override var mainUrl = "https://rahnama.tv"
@@ -95,7 +96,8 @@ class RahnamaTvProvider : MainAPI() {
             val episodes = (1..20).mapNotNull { episodeNum ->
                 val episodeUrl = "$baseUrl-$episodeNum/"
                 try {
-                    app.get(episodeUrl, interceptor = cfKiller)
+                    // HEAD isteği ile sayfanın var olup olmadığını kontrol et
+                    app.head(episodeUrl, interceptor = cfKiller)
                     Episode(episodeUrl, "Bölüm $episodeNum", episodeNum)
                 } catch (e: Exception) {
                     null
@@ -129,9 +131,9 @@ class RahnamaTvProvider : MainAPI() {
                 // OK.ru video linklerini doğrudan kullanıyoruz
                 val cleanUrl = iframeUrl.substringBefore("?")
                 
-                // newExtractorLink kullanarak deprecated uyarısını düzelttim
+                // Güncel ExtractorLink oluşturma
                 callback.invoke(
-                    newExtractorLink(
+                    ExtractorLink(
                         source = name,
                         name = "OK.ru",
                         url = cleanUrl,
@@ -140,6 +142,9 @@ class RahnamaTvProvider : MainAPI() {
                         type = INFER_TYPE
                     )
                 )
+            } else {
+                // Diğer kaynaklar için genel extractor
+                loadExtractor(iframeUrl, "$mainUrl/", subtitleCallback, callback)
             }
         }
         
