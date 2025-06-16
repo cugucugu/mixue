@@ -12,7 +12,7 @@ class RahnamaTvProvider : MainAPI() {
     override var name = "RahnamaTV"
     override val hasMainPage = true
     override var lang = "tr" // Site dili Türkçe
-    override val hasSearch = false
+    // HATA DÜZELTMESİ: 'hasSearch' özelliği artık MainAPI'de bulunmadığı için kaldırıldı.
     
     override val supportedTypes = setOf(
         TvType.Movie,
@@ -37,7 +37,8 @@ class RahnamaTvProvider : MainAPI() {
         val home = document.select("div.item").mapNotNull {
             toSearchResponse(it)
         }
-        return newHomePageResponse(request.name, home, hasNextPage = false)
+        // HATA DÜZELTMESİ: newHomePageResponse fonksiyonu, HomePageList nesnesi gerektirecek şekilde güncellendi.
+        return newHomePageResponse(HomePageList(request.name, home), hasNextPage = false)
     }
     
     private fun toSearchResponse(element: Element): SearchResponse? {
@@ -71,34 +72,27 @@ class RahnamaTvProvider : MainAPI() {
 
         return if (tvType == TvType.TvSeries) {
             val episodes = ArrayList<Episode>()
-            // DÜZELTME: Sizin belirttiğiniz bölüm yapısına göre mantık tamamen değiştirildi.
-            // Örn: /kaybeden/ -> /kaybeden-1/, /kaybeden-2/, ... şeklinde bölümleri arar.
             val seriesBaseSlug = url.trimEnd('/').substringAfterLast('/')
             
-            // Olası bölümleri kontrol etmek için bir döngü oluşturulur.
             for (i in 1..50) { // En fazla 50 bölüm varsayımı
                 val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
                 try {
                     val episodeDoc = app.get(episodeUrl, interceptor = interceptor, referer = url).document
-                    // Eğer sayfa boş değilse ve video içeriyorsa, bölümü ekle.
                     if (episodeDoc.select("iframe, video").isNotEmpty()) {
                          episodes.add(
                             Episode(
                                 data = episodeUrl,
-                                name = "Bölüm $i" // Bölüm adını dinamik olarak oluştur
+                                name = "Bölüm $i"
                             )
                         )
                     } else {
-                        // Geçerli bölüm bulunamadı, muhtemelen daha fazla bölüm yok.
                         break
                     }
                 } catch (e: Exception) {
-                    // Sayfa bulunamadı (404) veya başka bir hata oldu, döngüyü sonlandır.
                     break
                 }
             }
             
-            // Eğer hiç bölüm bulunamadıysa, ana sayfanın kendisi bir bölüm olabilir.
             if (episodes.isEmpty() && document.select("iframe, video").isNotEmpty()) {
                 episodes.add(Episode(data = url, name = "Film"))
             }
