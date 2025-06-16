@@ -75,7 +75,10 @@ class RahnamaTvProvider : MainAPI() {
                 try {
                     val episodeDoc = app.get(episodeUrl, interceptor = interceptor, referer = url).document
                     if (episodeDoc.select("iframe, video").isNotEmpty()) {
-                        episodes.add(Episode(data = episodeUrl, name = "Bölüm $i"))
+                        // HATA DÜZELTMESİ: Tavsiye edilen newEpisode fonksiyonu kullanıldı.
+                        episodes.add(newEpisode(episodeUrl) {
+                            name = "Bölüm $i"
+                        })
                     } else {
                         break
                     }
