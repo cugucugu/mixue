@@ -4,20 +4,19 @@ import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.network.CloudflareKiller
-import com.lagradost.cloudstream3.extractors.Utils
 
 class RahnamaTvProvider : MainAPI() {
     override var mainUrl = "https://rahnama.tv"
     override var name = "RahnamaTV"
     override val hasMainPage = true
     override var lang = "tr"
-    override val hasDownloadSupport = true
+
     override val supportedTypes = setOf(
         TvType.Movie,
         TvType.TvSeries
     )
 
-    private val cfKiller = CloudflareKiller()
+    private val interceptor = CloudflareKiller()
 
     override val mainPage = mainPageOf(
         "${mainUrl}/sinemalar/" to "SİNEMALAR",
@@ -30,89 +29,73 @@ class RahnamaTvProvider : MainAPI() {
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        val document = app.get(request.data, interceptor = cfKiller).document
+        val document = app.get(request.data, interceptor = interceptor).document
+        // DÜZELTME: Sitenin ana liste yapısı 'article.post' olarak güncellendi.
         val home = document.select("article.post").mapNotNull {
-            it.toSearchResult(request.data)
+            toSearchResponse(it, request.name)
         }
         return newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toSearchResult(categoryUrl: String): SearchResponse? {
-        val titleElement = this.selectFirst("h2.entry-title a") ?: return null
+    // DÜZELTME: Gönderdiğiniz HTML yapısına göre seçiciler tamamen değiştirildi.
+    private fun toSearchResponse(element: Element, category: String): SearchResponse? {
+        val titleElement = element.selectFirst("h2.entry-title a") ?: return null
+        val href = fixUrl(titleElement.attr("href"))
         val title = titleElement.text().trim()
-        val href = titleElement.attr("href")
-        val poster = this.selectFirst("div.elementskit-entry-header img")?.attr("src")
-        
-        // URL yapısına göre tür belirleme
-        val isSeries = when {
-            href.contains(Regex("-\\d+/?$")) -> true // Bölüm URL'si
-            categoryUrl.contains("/diziler/") -> true // Diziler kategorisindeyse
-            else -> false
-        }
-        
-        return if (isSeries) {
-            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
-                this.posterUrl = poster
-            }
-        } else {
-            newMovieSearchResponse(title, href, TvType.Movie) {
-                this.posterUrl = poster
-            }
-        }
-    }
+        val posterUrl = fixUrl(element.selectFirst("div.elementskit-entry-header img")?.attr("src") ?: "")
 
-    override suspend fun search(query: String): List<SearchResponse> {
-        val document = app.get("$mainUrl/?s=$query", interceptor = cfKiller).document
-        return document.select("article.post").mapNotNull {
-            it.toSearchResult("")
+        val tvType = when (category.uppercase()) {
+            "DİZİLER" -> TvType.TvSeries
+            else -> TvType.Movie
+        }
+
+        return newMovieSearchResponse(title, href, tvType) {
+            this.posterUrl = posterUrl
         }
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url, interceptor = cfKiller).document
-        
+        val document = app.get(url, interceptor = interceptor).document
+        // DÜZELTME: Başlık ve poster seçicileri detay sayfasına göre güncellendi.
         val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return null
         val poster = document.selectFirst("div.elementskit-entry-header img")?.attr("src")
         
-        // Yıl ve açıklama bilgisi bu sitede bulunmuyor
-        val description = "Rahnama.tv'de yayınlanan içerik"
-        
-        // URL yapısına göre tür belirleme
-        val isSeries = when {
-            url.contains(Regex("-\\d+/?$")) -> true // Bölüm URL'si
-            url.contains(Regex("/diziler/[^-]+$")) -> true // Dizi ana sayfası
-            else -> false
-        }
-        
-        if (isSeries) {
-            // Dizi bölümleri için
-            val baseUrl = if (url.contains("-\\d+/?$".toRegex())) {
-                url.substringBeforeLast("-")
-            } else {
-                url
-            }
-            
-            // Bölümleri otomatik oluştur
-            val episodes = (1..20).mapNotNull { episodeNum ->
-                val episodeUrl = "$baseUrl-$episodeNum/"
+        // DÜZELTME: Sitede bu detaylar olmadığı için varsayılan bir açıklama eklendi.
+        val plot = "Rahnama.tv'de yayınlanan içerik."
+
+        val isSeriesHomePage = url.contains("/diziler/") && !url.substringAfter("/diziler/").contains("-")
+
+        return if (isSeriesHomePage) {
+            val episodes = ArrayList<Episode>()
+            val seriesBaseSlug = url.trimEnd('/').substringAfterLast('/')
+
+            // /kaybeden-1, -2, ... şeklinde bölümleri arar
+            for (i in 1..50) {
+                val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
                 try {
-                    // HEAD isteği ile sayfanın var olup olmadığını kontrol et
-                    app.head(episodeUrl, interceptor = cfKiller)
-                    Episode(episodeUrl, "Bölüm $episodeNum", episodeNum)
+                    // Sayfanın var olup olmadığını kontrol etmek için HEAD isteği kullanmak daha verimlidir.
+                    val response = app.head(episodeUrl, interceptor = interceptor, referer = url)
+                    if (response.code == 200) {
+                        episodes.add(newEpisode(episodeUrl) {
+                            name = "Bölüm $i"
+                            episode = i
+                        })
+                    } else {
+                        break
+                    }
                 } catch (e: Exception) {
-                    null
+                    break
                 }
             }
             
-            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
-                this.plot = description
+                this.plot = plot
             }
         } else {
-            // Filmler için
-            return newMovieLoadResponse(title, url, TvType.Movie, url) {
+            newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
-                this.plot = description
+                this.plot = plot
             }
         }
     }
@@ -123,31 +106,14 @@ class RahnamaTvProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data, interceptor = cfKiller).document
-        val iframes = document.select("iframe").mapNotNull { it.attr("src") }
-        
-        iframes.forEach { iframeUrl ->
-            if (iframeUrl.contains("ok.ru")) {
-                // OK.ru video linklerini doğrudan kullanıyoruz
-                val cleanUrl = iframeUrl.substringBefore("?")
-                
-                // Güncel ExtractorLink oluşturma
-                callback.invoke(
-                    ExtractorLink(
-                        source = name,
-                        name = "OK.ru",
-                        url = cleanUrl,
-                        referer = "https://ok.ru/",
-                        quality = Qualities.Unknown.value,
-                        type = INFER_TYPE
-                    )
-                )
-            } else {
-                // Diğer kaynaklar için genel extractor
-                loadExtractor(iframeUrl, "$mainUrl/", subtitleCallback, callback)
-            }
+        val document = app.get(data, interceptor = interceptor).document
+
+        // Video iframe'ini bulur ve kaynağını işler.
+        document.select("iframe").forEach { iframe ->
+            val embedUrl = fixUrl(iframe.attr("src"))
+            loadExtractor(embedUrl, data, subtitleCallback, callback)
         }
-        
-        return iframes.isNotEmpty()
+
+        return true
     }
 }
