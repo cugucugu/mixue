@@ -5,89 +5,112 @@ import com.lagradost.cloudstream3.utils.*
 import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.network.CloudflareKiller
 
-class RahnamaTvProvider : MainAPI() {
+class RahnamaTV : MainAPI() {
     override var mainUrl = "https://rahnama.tv"
     override var name = "RahnamaTV"
     override val hasMainPage = true
     override var lang = "tr"
-
+    override val hasDownloadSupport = true
     override val supportedTypes = setOf(
         TvType.Movie,
         TvType.TvSeries
     )
 
-    private val interceptor = CloudflareKiller()
+    private val cfKiller = CloudflareKiller()
 
     override val mainPage = mainPageOf(
-        "$mainUrl/sinemalar/" to "SİNEMALAR",
-        "$mainUrl/diziler/" to "DİZİLER",
-        "$mainUrl/kisa-filmler/" to "KISA FİLMLER",
-        "$mainUrl/muzikler/" to "MÜZİKLER"
+        "${mainUrl}/sinemalar/" to "SİNEMALAR",
+        "${mainUrl}/diziler/" to "DİZİLER",
+        "${mainUrl}/kisa-filmler/" to "KISA FİLMLER",
+        "${mainUrl}/muzikler/" to "MÜZİKLER"
     )
 
     override suspend fun getMainPage(
         page: Int,
         request: MainPageRequest
     ): HomePageResponse {
-        val document = app.get(request.data, interceptor = interceptor).document
-        val home = document.select("div.item").mapNotNull {
-            toSearchResponse(it, request.name)
+        val document = app.get(request.data, interceptor = cfKiller).document
+        val home = document.select("article.post").mapNotNull {
+            it.toSearchResult(request.data)
         }
         return newHomePageResponse(request.name, home)
     }
 
-    private fun toSearchResponse(element: Element, category: String): SearchResponse? {
-        val linkElement = element.selectFirst("a") ?: return null
-        val href = fixUrl(linkElement.attr("href"))
-        val title = linkElement.selectFirst("div.data h3")?.text() ?: linkElement.attr("title")
-        val posterUrl = fixUrl(linkElement.selectFirst("div.image img")?.attr("src") ?: "")
-
-        val tvType = when (category.uppercase()) {
-            "DİZİLER" -> TvType.TvSeries
-            else -> TvType.Movie
+    private fun Element.toSearchResult(categoryUrl: String): SearchResponse? {
+        val titleElement = this.selectFirst("h2.entry-title a") ?: return null
+        val title = titleElement.text().trim()
+        val href = titleElement.attr("href")
+        val poster = this.selectFirst("div.elementskit-entry-header img")?.attr("src")
+        
+        // URL yapısına göre tür belirleme
+        val isSeries = when {
+            href.contains(Regex("-\\d+/?$")) -> true // Bölüm URL'si
+            categoryUrl.contains("/diziler/") -> true // Diziler kategorisindeyse
+            else -> false
         }
+        
+        return if (isSeries) {
+            newTvSeriesSearchResponse(title, href, TvType.TvSeries) {
+                this.posterUrl = poster
+            }
+        } else {
+            newMovieSearchResponse(title, href, TvType.Movie) {
+                this.posterUrl = poster
+            }
+        }
+    }
 
-        return newMovieSearchResponse(title, href, tvType) {
-            this.posterUrl = posterUrl
+    override suspend fun search(query: String): List<SearchResponse> {
+        val document = app.get("$mainUrl/?s=$query", interceptor = cfKiller).document
+        return document.select("article.post").mapNotNull {
+            it.toSearchResult("")
         }
     }
 
     override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url, interceptor = interceptor).document
-        val title = document.selectFirst("meta[property=og:title]")?.attr("content")?.trim() ?: return null
-        val poster = document.selectFirst("meta[property=og:image]")?.attr("content")
-        val plot = document.selectFirst("meta[property=og:description]")?.attr("content")
-
-        val isSeriesHomePage = url.contains("/diziler/") && !url.substringAfter("/diziler/").contains("-")
-
-        return if (isSeriesHomePage) {
-            val episodes = ArrayList<Episode>()
-            val seriesBaseSlug = url.trimEnd('/').substringAfterLast('/')
-
-            for (i in 1..50) {
-                val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
+        val document = app.get(url, interceptor = cfKiller).document
+        
+        val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return null
+        val poster = document.selectFirst("div.elementskit-entry-header img")?.attr("src")
+        
+        // Yıl ve açıklama bilgisi bu sitede bulunmuyor
+        val description = "Rahnama.tv'de yayınlanan içerik"
+        
+        // URL yapısına göre tür belirleme
+        val isSeries = when {
+            url.contains(Regex("-\\d+/?$")) -> true // Bölüm URL'si
+            url.contains(Regex("/diziler/[^-]+$")) -> true // Dizi ana sayfası
+            else -> false
+        }
+        
+        if (isSeries) {
+            // Dizi bölümleri için
+            val baseUrl = if (url.contains("-\\d+/?$".toRegex())) {
+                url.substringBeforeLast("-")
+            } else {
+                url
+            }
+            
+            // Bölümleri otomatik oluştur
+            val episodes = (1..20).mapNotNull { episodeNum ->
+                val episodeUrl = "$baseUrl-$episodeNum/"
                 try {
-                    val episodeDoc = app.get(episodeUrl, interceptor = interceptor, referer = url).document
-                    if (episodeDoc.select("iframe, video").isNotEmpty()) {
-                        episodes.add(newEpisode(episodeUrl) {
-                            name = "Bölüm $i"
-                        })
-                    } else {
-                        break
-                    }
+                    app.get(episodeUrl, interceptor = cfKiller)
+                    Episode(episodeUrl, "Bölüm $episodeNum", episodeNum)
                 } catch (e: Exception) {
-                    break
+                    null
                 }
             }
             
-            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+            return newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
                 this.posterUrl = poster
-                this.plot = plot
+                this.plot = description
             }
         } else {
-            newMovieLoadResponse(title, url, TvType.Movie, url) {
+            // Filmler için
+            return newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
-                this.plot = plot
+                this.plot = description
             }
         }
     }
@@ -98,13 +121,26 @@ class RahnamaTvProvider : MainAPI() {
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
-        val document = app.get(data, interceptor = interceptor).document
-
-        document.select("iframe").forEach { iframe ->
-            val embedUrl = fixUrl(iframe.attr("src"))
-            loadExtractor(embedUrl, data, subtitleCallback, callback)
+        val document = app.get(data, interceptor = cfKiller).document
+        val iframes = document.select("iframe").mapNotNull { it.attr("src") }
+        
+        iframes.forEach { iframeUrl ->
+            if (iframeUrl.contains("ok.ru")) {
+                // OK.ru video linklerini doğrudan kullanıyoruz
+                val cleanUrl = iframeUrl.substringBefore("?")
+                callback.invoke(
+                    ExtractorLink(
+                        source = "OK.ru",
+                        name = "OK.ru",
+                        url = cleanUrl,
+                        referer = "https://ok.ru/",
+                        quality = Qualities.Unknown.value,
+                        type = INFER_TYPE
+                    )
+                )
+            }
         }
-
-        return true
+        
+        return iframes.isNotEmpty()
     }
 }
