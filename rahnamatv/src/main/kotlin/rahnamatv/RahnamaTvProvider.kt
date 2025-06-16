@@ -12,7 +12,6 @@ class RahnamaTvProvider : MainAPI() {
     override var name = "RahnamaTV"
     override val hasMainPage = true
     override var lang = "tr" // Site dili Türkçe
-    // HATA DÜZELTMESİ: 'hasSearch' özelliği artık MainAPI'de bulunmadığı için kaldırıldı.
     
     override val supportedTypes = setOf(
         TvType.Movie,
@@ -37,8 +36,8 @@ class RahnamaTvProvider : MainAPI() {
         val home = document.select("div.item").mapNotNull {
             toSearchResponse(it)
         }
-        // HATA DÜZELTMESİ: newHomePageResponse fonksiyonu, HomePageList nesnesi gerektirecek şekilde güncellendi.
-        return newHomePageResponse(HomePageList(request.name, home), hasNextPage = false)
+        // HATA DÜZELTMESİ: newHomePageResponse fonksiyonunun doğru overload'u kullanıldı.
+        return newHomePageResponse(request.name, home, hasNextPage = false)
     }
     
     private fun toSearchResponse(element: Element): SearchResponse? {
