@@ -1,137 +1,91 @@
-package com.rahnamatv
+package com.cloudstreamplugins.rahnama
 
 import com.lagradost.cloudstream3.*
-import com.lagradost.cloudstream3.utils.*
-import org.jsoup.nodes.Element
-import com.lagradost.cloudstream3.network.CloudflareKiller
 import com.lagradost.cloudstream3.MainAPI
-import com.lagradost.cloudstream3.SearchResponse
-import com.lagradost.cloudstream3.TvType
+import com.lagradost.cloudstream3.utils.*
 
-// Ana eklenti sınıfı.
-// Siteden veri çekme, arama yapma ve video linklerini bulma mantığını içerir.
-class RahnamaTvProvider : MainAPI() {
-    // API'nin temel bilgileri
-    override var mainUrl = "https://rahnama.tv"
+class Rahnama : MainAPI() {
     override var name = "RahnamaTV"
-    override val hasMainPage = true // Ana sayfa içeriği var mı? Evet.
-    override var lang = "tr" // İçerik dili Türkçe.
-    
-    // Desteklenen içerik türleri: Diziler ve Filmler.
-    override val supportedTypes = setOf(
-        TvType.Movie,
-        TvType.TvSeries
+    override var mainUrl = "https://rahnama.tv"
+    override var lang = "fa" // Farsça içerik varsa
+    override val hasMainPage = true
+    override val hasSearch = false
+    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
+
+    override val mainPage = listOf(
+        "Sinemalar" to "$mainUrl/sinemalar",
+        "Diziler" to "$mainUrl/diziler",
+        "Kısa Filmler" to "$mainUrl/kisa-filmler",
+        "Müzikler" to "$mainUrl/muzikler"
     )
 
-    // Cloudflare korumasını atlamak için interceptor.
-    private val interceptor = CloudflareKiller()
-
-    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse? {
-        val document = app.get(mainUrl, interceptor = interceptor).document
-        val homePageList = ArrayList<HomePageList>()
-
-        document.select("section.slider_post").forEach { section ->
-            val title = section.selectFirst("h2.title")?.text() ?: "Kategori"
-            val items = section.select("div.item").mapNotNull { item ->
-                toSearchResponse(item)
-            }
-            if (items.isNotEmpty()) {
-                homePageList.add(HomePageList(title, items))
-            }
-        }
-        
-        if (homePageList.isEmpty()) return null
-        return HomePageResponse(homePageList)
-    }
-
-    // Bir HTML elementini (genellikle bir film/dizi kartı)
-    // CloudStream'in anlayacağı bir SearchResponse objesine dönüştürür.
-    private fun toSearchResponse(element: Element): SearchResponse? {
-        val link = element.selectFirst("a") ?: return null
-        val href = fixUrl(link.attr("href"))
-        val title = link.attr("title")
-        val posterUrl = fixUrl(link.selectFirst("img")?.let { it.attr("data-src").ifEmpty { it.attr("src") } } ?: "")
-
-        val tvType = if (href.contains("/series/")) TvType.TvSeries else TvType.Movie
-
-        return newMovieSearchResponse(title, href, tvType) {
-            this.posterUrl = posterUrl
-        }
-    }
-
-    // Arama fonksiyonu.
-    override suspend fun search(query: String): List<SearchResponse> {
-        val searchUrl = "$mainUrl/search?q=$query"
-        val document = app.get(searchUrl, interceptor = interceptor).document
-
-        return document.select("div.item").mapNotNull {
-            toSearchResponse(it)
-        }
-    }
-
-    // Bir film veya dizi sayfasına tıklandığında detayları yükler.
-    override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url, interceptor = interceptor).document
-        val title = document.selectFirst("h1.title")?.text()?.trim() ?: return null
-        val poster = fixUrl(document.selectFirst("div.poster img")?.attr("src") ?: "")
-        val plot = document.selectFirst("div.story")?.text()?.trim()
-        val year = document.select("div.info span a[href*='/year/']")?.text()?.toIntOrNull()
-        val tags = document.select("div.info span a[href*='/genre/']").map { it.text() }
-        val tvType = if (url.contains("/series/")) TvType.TvSeries else TvType.Movie
-
-        return if (tvType == TvType.TvSeries) {
-            val episodes = ArrayList<Episode>()
-            document.select("div.seasons_list > ul").forEachIndexed { seasonIndex, seasonElement ->
-                val seasonNum = seasonElement.parent()?.selectFirst("span")?.text()?.filter { it.isDigit() }?.toIntOrNull() ?: (seasonIndex + 1)
-                
-                seasonElement.select("li").forEach { episodeElement ->
-                    val epLink = episodeElement.selectFirst("a") ?: return@forEach
-                    val epHref = fixUrl(epLink.attr("href"))
-                    val epName = epLink.text()
-                    val episodeNum = epName.substringAfter("Bölüm").trim().toIntOrNull()
-                    
-                    episodes.add(
-                        Episode(
-                            data = epHref,
-                            name = epName,
-                            season = seasonNum,
-                            episode = episodeNum
-                        )
-                    )
-                }
-            }
-            // HATA DÜZELTMESİ: Fonksiyonlar doğrudan çağrıldı.
-            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes.reversed()) {
+    override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
+        val home = request.dataUrl
+        val document = app.get(home).document
+        val items = document.select("article").mapNotNull {
+            val href = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
+            val title = it.selectFirst("h2")?.text()?.trim() ?: return@mapNotNull null
+            val poster = it.selectFirst("img")?.attr("src")
+            val type = if (home.contains("/diziler")) TvType.TvSeries else TvType.Movie
+            newMovieSearchResponse(title, href, type) {
                 this.posterUrl = poster
-                this.year = year
-                this.plot = plot
-                this.tags = tags
             }
-        } else { // Film ise
-            // HATA DÜZELTMESİ: Fonksiyonlar doğrudan çağrıldı.
-            newMovieLoadResponse(title, url, TvType.Movie, url) {
+        }
+        return newHomePageResponse(request.name, items)
+    }
+
+    override suspend fun load(url: String): LoadResponse {
+        val doc = app.get(url).document
+        val title = doc.selectFirst("meta[property=og:title]")?.attr("content") ?: return errorLoadResponse
+        val poster = doc.selectFirst("meta[property=og:image]")?.attr("content")
+        val description = doc.selectFirst("meta[property=og:description]")?.attr("content")
+
+        val episodes = mutableListOf<Episode>()
+        val base = Regex("""https://rahnama\.tv/([a-zA-Z0-9\-]+)/""").find(url)?.groupValues?.get(1)
+        if (base != null) {
+            // Dizi ise, örneğin /kaybeden -> /kaybeden-1, -2, ...
+            for (i in 1..20) {
+                val episodeUrl = "$mainUrl/$base-$i/"
+                val episodeDoc = app.get(episodeUrl).document
+                if (episodeDoc.select("video, iframe").isEmpty()) break
+                episodes.add(Episode(episodeUrl, "Bölüm $i"))
+            }
+        }
+
+        return if (episodes.isEmpty()) {
+            val videoUrl = doc.selectFirst("video source")?.attr("src")
+                ?: doc.selectFirst("iframe")?.attr("src")
+                ?: return errorLoadResponse
+            newMovieLoadResponse(title, url, TvType.Movie, videoUrl) {
                 this.posterUrl = poster
-                this.year = year
-                this.plot = plot
-                this.tags = tags
+                this.plot = description
+            }
+        } else {
+            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                this.posterUrl = poster
+                this.plot = description
             }
         }
     }
-    
-    // Bölüm veya film için video kaynak linklerini (embed URL) bulur.
+
     override suspend fun loadLinks(
         data: String,
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
-    ): Boolean {
-        val document = app.get(data, interceptor = interceptor).document
-        
-        document.select("iframe").forEach { iframe ->
-            val embedUrl = fixUrl(iframe.attr("src"))
-            loadExtractor(embedUrl, data, subtitleCallback, callback)
-        }
-        
-        return true
+    ) {
+        val doc = app.get(data).document
+        val videoUrl = doc.selectFirst("video source")?.attr("src")
+            ?: doc.selectFirst("iframe")?.attr("src")
+            ?: return
+        callback(
+            ExtractorLink(
+                source = "RahnamaTV",
+                name = "Rahnama",
+                url = videoUrl,
+                referer = mainUrl,
+                quality = Qualities.Unknown
+            )
+        )
     }
 }
