@@ -36,8 +36,9 @@ class RahnamaTvProvider : MainAPI() {
         val home = document.select("div.item").mapNotNull {
             toSearchResponse(it)
         }
-        // HATA DÜZELTMESİ: newHomePageResponse fonksiyonunun doğru overload'u kullanıldı.
-        return newHomePageResponse(request.name, home, hasNextPage = false)
+        // HATA DÜZELTMESİ: Fonksiyon overload belirsizliğini çözmek için 'hasNextPage' parametresi kaldırıldı.
+        // Fonksiyonun bu versiyonunda hasNextPage varsayılan olarak false kabul edilir.
+        return newHomePageResponse(request.name, home)
     }
     
     private fun toSearchResponse(element: Element): SearchResponse? {
