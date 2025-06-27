@@ -26,7 +26,7 @@ class Rahnamatv : MainAPI() {
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
         val document = app.get("${request.data}").document
-        val home = document.select("div.page-content col-lg-3 col-md-6").mapNotNull { it.toMainPageResult() }
+        val home = document.select("div.post-items div.col-lg-3.col-md-6").mapNotNull { it.toMainPageResult() }
 
         return newHomePageResponse(request.name, home)
     }
@@ -92,32 +92,22 @@ class Rahnamatv : MainAPI() {
             }
         }
     }
+    // Video linkini (örn: ok.ru) çeker
+    override suspend fun loadLinks(
+        data: String, // `load` fonksiyonundan gelen film/bölüm URL'si
+        isCasting: Boolean,
+        subtitleCallback: (SubtitleFile) -> Unit,
+        callback: (ExtractorLink) -> Unit
+    ): Boolean {
+        val document = app.get(data).document
 
-override suspend fun loadLinks(
-    data: String, // Bu parametre, film sayfasının URL'sini içerir.
-    isCasting: Boolean,
-    subtitleCallback: (SubtitleFile) -> Unit,
-    callback: (ExtractorLink) -> Unit
-): Boolean {
-    // 1. Verilen 'data' URL'sinden sayfanın HTML içeriğini al ve ayrıştır.
-    val document = app.get(data).document
+        // `entry-content` içindeki `ok.ru` iframe'ini hedefliyoruz
+        val iframeSrc = document.selectFirst("div.entry-content iframe[src*='ok.ru']")?.attr("src") ?: return false
 
-    // 2. HTML içinde 'div' class'ı 'page-content' olan etiketin içindeki 'iframe'i seç.
-    // Bu, sayfadaki diğer iframelerle karışmasını engeller ve daha güvenilirdir.
-    // 'src' özelliğini al. Eğer iframe veya src bulunamazsa, fonksiyon 'false' döner.
-    val iframeSrc = document.selectFirst("div.page-content iframe")?.attr("src") ?: return false
+        // URL'nin "https:" ile başladığından emin oluyoruz
+        val fullUrl = if (iframeSrc.startsWith("//")) "https:$iframeSrc" else iframeSrc
 
-    // 3. 'iframeSrc' bazen protokol olmadan ("//ok.ru/...") şeklinde gelebilir.
-    // Bu durumu kontrol edip URL'nin başına "https:" ekleyerek tam bir URL oluşturuyoruz.
-    val fullUrl = if (iframeSrc.startsWith("//")) {
-        "https:$iframeSrc"
-    } else {
-        iframeSrc
+        // Cloudstream'in dahili link ayıklayıcısını çağırıyoruz
+        return loadExtractor(fullUrl, data, subtitleCallback, callback)
     }
-
-    // 4. Cloudstream'in dahili `loadExtractor` fonksiyonunu çağır.
-    // Bu fonksiyon, "ok.ru" gibi bilinen video siteleri için doğru ayıklayıcıyı otomatik olarak bulur ve çalıştırır.
-    // 'data' (sayfa URL'si) referans olarak gönderilir, bu bazı korumaları aşmak için önemlidir.
-    // Fonksiyon, video linklerini bulursa 'true', bulamazsa 'false' döner.
-    return loadExtractor(fullUrl, data, subtitleCallback, callback)
 }
