@@ -48,7 +48,7 @@ class Rahnamatv : MainAPI() {
     }
 
       override suspend fun load(url: String): LoadResponse? {
-        val document = app.get(url, interceptor = interceptor).document
+        val document = app.get(url).document
         // DÜZELTME: Başlık ve poster seçicileri detay sayfasına göre güncellendi.
         val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return null
         val poster = document.selectFirst("div.elementskit-entry-header img")?.attr("src")
@@ -67,7 +67,7 @@ class Rahnamatv : MainAPI() {
                 val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
                 try {
                     // Sayfanın var olup olmadığını kontrol etmek için HEAD isteği kullanmak daha verimlidir.
-                    val response = app.head(episodeUrl, interceptor = interceptor, referer = url)
+                    val response = app.head(episodeUrl, referer = url)
                     if (response.code == 200) {
                         episodes.add(newEpisode(episodeUrl) {
                             name = "Bölüm $i"
