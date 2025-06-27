@@ -96,23 +96,24 @@
         "name": "Noxx"
     },
     {
-        "iconUrl": "https://www.google.com/s2/favicons?domain=www.yenikaynak.com&sz=%size%",
+        "iconUrl": "https://www.google.com/s2/favicons?domain=www.rahnama.tv&sz=%size%",
         "apiVersion": 1,
         "repositoryUrl": "https://github.com/cugucugu/mixue",
-        "fileSize": 10323,
+        "fileSize": 10175,
         "status": 1,
         "language": "tr",
         "authors": [
-            "Cugucugu"
+            "cugucugu"
         ],
         "tvTypes": [
-            "Movies"
+            "TvSeries",
+            "Movie"
         ],
-        "version": 1,
-        "internalName": "rahnamatv",
-        "description": "RahnamaTV",
-        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/rahnamatv.cs3",
-        "name": "rahnamatv"
+        "version": 0,
+        "internalName": "Rahnamatv",
+        "description": "\u0130ran Dizi ve Filmleri \u0130zleme Sitesi",
+        "url": "https://raw.githubusercontent.com/cugucugu/mixue/builds/Rahnamatv.cs3",
+        "name": "Rahnamatv"
     },
     {
         "iconUrl": "https://rectvapk.cc/wp-content/uploads/2023/02/Rec-TV.webp",
