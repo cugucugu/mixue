@@ -1,108 +1,118 @@
 package com.cugucugu
 
-import android.util.Log
-import org.jsoup.nodes.Element
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.LoadResponse.Companion.addActors
-import com.lagradost.cloudstream3.LoadResponse.Companion.addTrailer
+import org.jsoup.nodes.Element
 
 class Rahnamatv : MainAPI() {
-    override var mainUrl              = "https://rahnama.tv"
-    override var name                 = "Rahnamatv"
-    override val hasMainPage          = true
-    override var lang                 = "tr"
-    override val hasQuickSearch       = false
+    override var mainUrl = "https://rahnama.tv"
+    override var name = "Rahnamatv"
+    override val hasMainPage = true
+    override var lang = "tr"
+    override val hasQuickSearch = false
     override val hasChromecastSupport = true
-    override val hasDownloadSupport   = true
-    override val supportedTypes       = setOf(TvType.Movie)
+    override val hasDownloadSupport = true
+    // Dizi desteğini de ekliyoruz
+    override val supportedTypes = setOf(TvType.Movie, TvType.TvSeries)
 
     override val mainPage = mainPageOf(
-        "${mainUrl}/sinemalar/"      to "Sinemalar",
-        "${mainUrl}/diziler/"   to "Diziler",
+        "${mainUrl}/sinemalar/" to "Sinemalar",
+        "${mainUrl}/diziler/" to "Diziler",
         "${mainUrl}/kısa-filmler/" to "Kısa Filmler",
-        "${mainUrl}/muzikler/"  to "Müzikler"
+        "${mainUrl}/muzikler/" to "Müzikler"
     )
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val document = app.get("${request.data}").document
-        val home = document.select("div.post-items div.col-lg-3.col-md-6").mapNotNull { it.toMainPageResult() }
+        // Sayfalama desteği (sonraki sayfalar için /page/2/ eklenir)
+        val url = if (page <= 1) request.data else "${request.data}page/$page/"
+        val document = app.get(url).document
+
+        // Ana sayfadaki her bir içerik kartını seçiyoruz
+        val home = document.select("div.post-items div.col-lg-3.col-md-6").mapNotNull {
+            it.toSearchResult()
+        }
 
         return newHomePageResponse(request.name, home)
     }
 
-    private fun Element.toMainPageResult(): SearchResponse? {
-        val title     = this.selectFirst("div.elementskit-post-body  a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("div.elementskit-post-body  a")?.attr("href")) ?: return null
-        val posterUrl = fixUrlNull(this.selectFirst("div.elementskit-post-image-card img")?.attr("src"))
-
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
-    }
-
+    // Bir HTML elementinden (karttan) arama sonucu oluşturan yardımcı fonksiyon
     private fun Element.toSearchResult(): SearchResponse? {
-        val title     = this.selectFirst("div.title a")?.text() ?: return null
-        val href      = fixUrlNull(this.selectFirst("div.title a")?.attr("href")) ?: return null
+        val linkElement = this.selectFirst("h2.entry-title a") ?: return null
+        val href = fixUrlNull(linkElement.attr("href")) ?: return null
+        val title = linkElement.text()
         val posterUrl = fixUrlNull(this.selectFirst("img")?.attr("src"))
 
-        return newMovieSearchResponse(title, href, TvType.Movie) { this.posterUrl = posterUrl }
+        // Linkin "/diziler/" içerip içermediğine bakarak içerik türünü anlıyoruz
+        val tvType = if (href.contains("/diziler/")) TvType.TvSeries else TvType.Movie
+
+        return newSearchResponse(title, href, tvType) {
+            this.posterUrl = posterUrl
+        }
     }
-
-      override suspend fun load(url: String): LoadResponse? {
+    
+    // Film/Dizi detay sayfasını yükleyen fonksiyon
+    override suspend fun load(url: String): LoadResponse? {
         val document = app.get(url).document
-        // DÜZELTME: Başlık ve poster seçicileri detay sayfasına göre güncellendi.
         val title = document.selectFirst("h1.entry-title")?.text()?.trim() ?: return null
-        val poster = document.selectFirst("div.elementskit-entry-header img")?.attr("src")
         
-        // DÜZELTME: Sitede bu detaylar olmadığı için varsayılan bir açıklama eklendi.
-        val plot = "Rahnama.tv'de yayınlanan içerik."
+        // Poster ve açıklamayı detay sayfasından almaya çalışıyoruz.
+        // Bu sitede detay sayfalarında bu bilgiler her zaman bulunmuyor.
+        val poster = fixUrlNull(document.selectFirst("div.page-content img")?.attr("src"))
+        val plot = document.selectFirst("div.page-content p")?.text()?.trim()
 
-        val isSeriesHomePage = url.contains("/diziler/") && !url.substringAfter("/diziler/").contains("-")
+        // URL'ye göre TV Dizisi mi yoksa Film mi olduğunu anlıyoruz
+        val isTvSeries = url.contains("/diziler/")
 
-        return if (isSeriesHomePage) {
-            val episodes = ArrayList<Episode>()
-            val seriesBaseSlug = url.trimEnd('/').substringAfterLast('/')
+        return if (isTvSeries) {
+            // Bu bir dizi sayfası ise, bölüm linklerini arıyoruz.
+            // Örnek: "Kaybeden" ana sayfasında "Kaybeden (1)", "Kaybeden (2)" gibi linkler bulunur.
+            val episodes = document.select("div.page-content p a[href*='${url.trimEnd('/')}']").mapNotNull { el ->
+                val epHref = fixUrlNull(el.attr("href")) ?: return@mapNotNull null
+                val epName = el.text()
+                val episode = epName.filter { it.isDigit() }.toIntOrNull()
 
-            // /kaybeden-1, -2, ... şeklinde bölümleri arar
-            for (i in 1..50) {
-                val episodeUrl = "$mainUrl/$seriesBaseSlug-$i/"
-                try {
-                    // Sayfanın var olup olmadığını kontrol etmek için HEAD isteği kullanmak daha verimlidir.
-                    val response = app.head(episodeUrl, referer = url)
-                    if (response.code == 200) {
-                        episodes.add(newEpisode(episodeUrl) {
-                            name = "Bölüm $i"
-                            episode = i
-                        })
-                    } else {
-                        break
-                    }
-                } catch (e: Exception) {
-                    break
+                newEpisode(epHref) {
+                    name = epName
+                    this.episode = episode
+                }
+            }.reversed()
+
+            // Eğer bölüm listesi boşsa ve URL bir bölüm linki ise (örn: /kaybeden-1),
+            // o zaman bu tek bölümlük bir diziymiş gibi davran.
+            if (episodes.isEmpty() && Regex("""-\d+/?$""").containsMatchIn(url)) {
+                 newTvSeriesLoadResponse(title, url, TvType.TvSeries, listOf(
+                     newEpisode(url) { name = title }
+                 )) {
+                    this.posterUrl = poster
+                    this.plot = plot
+                }
+            } else {
+                newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
+                    this.posterUrl = poster
+                    this.plot = plot
                 }
             }
-            
-            newTvSeriesLoadResponse(title, url, TvType.TvSeries, episodes) {
-                this.posterUrl = poster
-                this.plot = plot
-            }
         } else {
+            // Bu bir film sayfası. loadLinks'e data olarak kendi URL'sini veriyoruz.
             newMovieLoadResponse(title, url, TvType.Movie, url) {
                 this.posterUrl = poster
                 this.plot = plot
             }
         }
     }
-    // Video linkini (örn: ok.ru) çeker
+    
+    // Video linkini (iframe'den) çıkaran fonksiyon
     override suspend fun loadLinks(
-        data: String, // `load` fonksiyonundan gelen film/bölüm URL'si
+        data: String, // `load` fonksiyonundan gelen film veya bölüm URL'si
         isCasting: Boolean,
         subtitleCallback: (SubtitleFile) -> Unit,
         callback: (ExtractorLink) -> Unit
     ): Boolean {
         val document = app.get(data).document
 
-        // `entry-content` içindeki `ok.ru` iframe'ini hedefliyoruz
-        val iframeSrc = document.selectFirst("div.entry-content iframe[src*='ok.ru']")?.attr("src") ?: return false
+        // KRİTİK DÜZELTME: iframe'i bulmak için daha genel ve doğru bir seçici kullanıyoruz.
+        // Bu seçici hem film hem de dizi bölümü sayfasında çalışacaktır.
+        val iframeSrc = document.selectFirst("iframe[src*='ok.ru']")?.attr("src") ?: return false
 
         // URL'nin "https:" ile başladığından emin oluyoruz
         val fullUrl = if (iframeSrc.startsWith("//")) "https:$iframeSrc" else iframeSrc
